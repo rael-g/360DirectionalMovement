@@ -7,40 +7,22 @@ The camera is untouched. You still aim it freely, and the character follows wher
 [b]Work in progress.[/b] This is an early release. It is stable and playable, but a few rough edges remain and are being worked on. Feedback and reports are welcome.
 
 
-[size=4][b]Main features[/b][/size]
-
-[list]
-[*][b]The character faces where it moves.[/b] Backwards and sideways become a real run in that direction instead of a backpedal or a strafe.
-[*][b]The camera stays yours.[/b] Turning the body never moves the camera, and aiming works exactly as it did.
-[*][b]Smooth turns.[/b] Direction changes are eased rather than snapped, matching the rate the game turns the body on its own.
-[*][b]Third person only.[/b] First person is untouched.
-[*][b]No dependencies beyond SFSE.[/b] No framework, no ESM, no plugin slot.
-[/list]
-
-
 [size=4][b]Requirements[/b][/size]
 
 [list]
 [*]Starfield 1.16.244
-[*][url=https://www.nexusmods.com/starfield/mods/106]SFSE[/url] - Starfield Script Extender
-[*][url=https://www.nexusmods.com/starfield/mods/3256]Address Library for SFSE Plugins[/url] - the plugin resolves the addresses it needs from this database at load time and does nothing without it
+[*][url=https://www.nexusmods.com/starfield/mods/106]SFSE[/url]
+[*][url=https://www.nexusmods.com/starfield/mods/3256]Address Library for SFSE Plugins[/url]
 [/list]
 
 
 [size=4][b]Installation[/b][/size]
 
-With a mod manager, install the archive as usual and enable it.
+Install with a mod manager, or copy the archive contents into your Starfield Data folder.
 
-Manual installation: open the archive and copy its contents into your Starfield [b]Data[/b] folder, so that you end up with
+[b]You also have to enable loose files.[/b] The mod ships animation files that have to be read from disk, and Starfield ignores loose files unless you tell it not to. If you have already done this for another mod, skip it.
 
-[code]Data/SFSE/Plugins/sf360.dll
-Data/meshes/actors/human/animations/...[/code]
-
-The Data folder sits next to Starfield.exe. On a default Steam install that is steamapps/common/Starfield/Data. To uninstall, delete the files you copied.
-
-[b]You also have to enable loose files.[/b] Starfield ignores them unless you tell it not to, and this mod ships animation files that have to be read from disk. If you have already done this for another mod, skip it.
-
-Open [b]Documents/My Games/Starfield/StarfieldCustom.ini[/b], creating it if it does not exist, and make sure it contains:
+[b]Documents/My Games/Starfield/StarfieldCustom.ini[/b] needs:
 
 [code][Archive]
 bInvalidateOlderFiles=1
@@ -57,13 +39,6 @@ The archive includes empty replacements for the movement start animations. Those
 [size=4][b]Reporting a problem[/b][/size]
 
 A log is written to [b]Documents/My Games/Starfield/SFSE/Logs/sf360.log[/b]. Please attach it to any bug report.
-
-
-[size=4][b]Shout outs[/b][/size]
-
-Ian Patt and the SFSE team, for the script extender everything here is built on, and for keeping its source available.
-
-The maintainers of Address Library for SFSE Plugins, which is what lets this survive a game update.
 
 
 [size=4][b]Source[/b][/size]

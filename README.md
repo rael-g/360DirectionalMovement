@@ -12,49 +12,24 @@ character follows where you are going.
 > but a few rough edges remain and are being worked on. Feedback and reports
 > are welcome.
 
-## Features
-
-- **The character faces where it moves.** Backwards and sideways become a real
-  run in that direction instead of a backpedal or a strafe.
-- **The camera stays yours.** Turning the body never moves the camera, and
-  aiming works exactly as it did.
-- **Smooth turns.** Direction changes are eased rather than snapped, matching
-  the rate the game turns the body on its own.
-- **Third person only.** First person is untouched.
-- **No dependencies beyond SFSE.** No framework, no ESM, no plugin slot.
-
 ## Requirements
 
 - **Starfield 1.16.244**
-- **[SFSE](https://www.nexusmods.com/starfield/mods/106)** — Starfield Script
-  Extender
+- **[SFSE](https://www.nexusmods.com/starfield/mods/106)**
 - **[Address Library for SFSE Plugins](https://www.nexusmods.com/starfield/mods/3256)**
-  — the plugin resolves the addresses it needs from this database at load time
-  and does nothing without it
 
 ## Installation
 
-With a mod manager, install the archive as usual and enable it.
-
-Manual installation: open the archive and copy its contents into your Starfield
-`Data` folder, so that you end up with
-
-```
-Data/SFSE/Plugins/sf360.dll
-Data/meshes/actors/human/animations/...
-```
-
-The `Data` folder sits next to `Starfield.exe`. On a default Steam install that
-is `steamapps/common/Starfield/Data`. To uninstall, delete the files you copied.
+Install with a mod manager, or copy the archive contents into your Starfield
+`Data` folder.
 
 ### Enable loose files
 
-Starfield ignores loose files unless you tell it not to, and the mod ships
-animation files that have to be read from disk. If you have already done this
+The mod ships animation files that have to be read from disk, and Starfield
+ignores loose files unless you tell it not to. If you have already done this
 for another mod, skip it.
 
-Open `Documents/My Games/Starfield/StarfieldCustom.ini`, creating it if it does
-not exist, and make sure it contains:
+`Documents/My Games/Starfield/StarfieldCustom.ini` needs:
 
 ```ini
 [Archive]
@@ -76,14 +51,6 @@ they will be dropped once the interaction is fixed properly.
 
 A log is written to `Documents/My Games/Starfield/SFSE/Logs/sf360.log`. Please
 attach it to any bug report.
-
-## Credits
-
-Ian Patt and the SFSE team, for the script extender everything here is built
-on, and for keeping its source available.
-
-The maintainers of Address Library for SFSE Plugins, which is what lets this
-survive a game update.
 
 ## Building
 
