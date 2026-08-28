@@ -1,56 +1,15 @@
 # 360 Directional Movement
 
-Your character turns to face the direction it is actually moving.
+An SFSE plugin for Starfield. The character turns to face the direction it is
+actually moving, instead of backpedalling or strafing with the body locked to
+the camera. The camera is untouched.
 
-In the base game the body stays locked to the camera, so moving backwards or
-sideways plays a backpedal or a strafe. This mod turns the character to face
-its movement direction so it simply runs, the way most third person action
-games handle it. The camera is untouched — you still aim it freely, and the
-character follows where you are going.
-
-> **Work in progress.** This is an early release. It is stable and playable,
-> but a few rough edges remain and are being worked on. Feedback and reports
-> are welcome.
+> **Work in progress.** Stable and playable, with a few rough edges still being
+> worked on.
 
 ## Requirements
 
-- **Starfield 1.16.244**
-- **[SFSE](https://www.nexusmods.com/starfield/mods/106)**
-- **[Address Library for SFSE Plugins](https://www.nexusmods.com/starfield/mods/3256)**
-
-## Installation
-
-Install with a mod manager, or copy the archive contents into your Starfield
-`Data` folder.
-
-### Enable loose files
-
-The mod ships animation files that have to be read from disk, and Starfield
-ignores loose files unless you tell it not to. If you have already done this
-for another mod, skip it.
-
-`Documents/My Games/Starfield/StarfieldCustom.ini` needs:
-
-```ini
-[Archive]
-bInvalidateOlderFiles=1
-sResourceDataDirsFinal=
-```
-
-`sResourceDataDirsFinal` is deliberately empty. Without these two lines the
-character drags at the start of a movement.
-
-## About the included animation files
-
-The archive includes empty replacements for the movement start animations.
-Those animations carry root motion that fights the rotation, so blanking them
-removes a slide at the start of a movement. The visual cost is negligible, and
-they will be dropped once the interaction is fixed properly.
-
-## Reporting a problem
-
-A log is written to `Documents/My Games/Starfield/SFSE/Logs/sf360.log`. Please
-attach it to any bug report.
+Starfield 1.16.244, SFSE, and Address Library for SFSE Plugins.
 
 ## Building
 
@@ -65,6 +24,11 @@ cmake --build build
 ```
 
 More in [docs/BUILDING.md](docs/BUILDING.md).
+
+## Reporting a problem
+
+Open an issue here, or use the Nexus posts tab. The plugin writes
+`Documents/My Games/Starfield/SFSE/Logs/sf360.log`; attach it either way.
 
 ## Licence
 
