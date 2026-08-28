@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.21)
+project(hello CXX)
+set(CMAKE_CXX_STANDARD 23)
+add_library(hello SHARED hello.cpp)
+add_executable(loader loader.cpp)

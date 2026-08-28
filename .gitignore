@@ -1,0 +1,9 @@
+# SDK da Microsoft baixado pelo xwin (reproduzivel com xwin --accept-license)
+xwin/
+.xwin-cache/
+# artefatos de build
+build/
+sf360/build/
+teste/build/
+# referencia clonada, nao e nosso codigo
+commonlibsf/
