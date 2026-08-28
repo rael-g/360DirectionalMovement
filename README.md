@@ -32,6 +32,5 @@ Open an issue here, or use the Nexus posts tab. The plugin writes
 
 ## Licence
 
-The code is MIT licensed. The mod itself is released under
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — do what you like
-with it, including bundling it in a pack, as long as you credit it.
+MIT. Do what you like with it, including bundling it in a mod pack, as long as
+the copyright notice goes along.
