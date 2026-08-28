@@ -40,6 +40,24 @@ Data/meshes/actors/human/animations/...
 The `Data` folder sits next to `Starfield.exe`. On a default Steam install that
 is `steamapps/common/Starfield/Data`. To uninstall, delete the files you copied.
 
+### Enable loose files
+
+Starfield ignores loose files unless you tell it not to, and the mod ships
+animation files that have to be read from disk. If you have already done this
+for another mod, skip it.
+
+Open `Documents/My Games/Starfield/StarfieldCustom.ini`, creating it if it does
+not exist, and make sure it contains:
+
+```ini
+[Archive]
+bInvalidateOlderFiles=1
+sResourceDataDirsFinal=
+```
+
+`sResourceDataDirsFinal` is deliberately empty. Without these two lines the
+character drags at the start of a movement.
+
 ## A note on the included animation files
 
 The archive includes empty replacements for the movement start animations.
