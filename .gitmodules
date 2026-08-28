@@ -1,0 +1,4 @@
+[submodule "sfse-src"]
+	path = sfse-src
+	url = https://github.com/ianpatt/sfse.git
+	branch = master

@@ -1,0 +1,17 @@
+# MSVC CRT and Windows SDK fetched by xwin (reproducible with --accept-license)
+xwin/
+.xwin-cache/
+
+# build artefacts
+build/
+sf360/build/
+tests/build/
+
+# cloned for reference, not our code
+commonlibsf/
+
+# personal planning, never versioned
+TODO*
+KANBAN*
+kanban/
+*.todo
