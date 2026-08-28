@@ -1,0 +1,73 @@
+[size=4][b]Your character turns to face the direction it is actually moving.[/b][/size]
+
+In the base game the body stays locked to the camera, so moving backwards or sideways plays a backpedal or a strafe. This mod turns the character to face its movement direction so it simply runs, the way most third person action games handle it.
+
+The camera is untouched. You still aim it freely, and the character follows where you are going.
+
+[b]Work in progress.[/b] This is an early release. It is stable and playable, but a few rough edges remain and are being worked on. Feedback and reports are welcome.
+
+
+[size=4][b]Main features[/b][/size]
+
+[list]
+[*][b]The character faces where it moves.[/b] Backwards and sideways become a real run in that direction instead of a backpedal or a strafe.
+[*][b]The camera stays yours.[/b] Turning the body never moves the camera, and aiming works exactly as it did.
+[*][b]Smooth turns.[/b] Direction changes are eased rather than snapped, matching the rate the game turns the body on its own.
+[*][b]Third person only.[/b] First person is untouched.
+[*][b]No dependencies beyond SFSE.[/b] No framework, no ESM, no plugin slot.
+[/list]
+
+
+[size=4][b]Requirements[/b][/size]
+
+[list]
+[*]Starfield 1.16.244
+[*][url=https://www.nexusmods.com/starfield/mods/106]SFSE[/url] - Starfield Script Extender
+[*][url=https://www.nexusmods.com/starfield/mods/3256]Address Library for SFSE Plugins[/url] - the plugin resolves the addresses it needs from this database at load time and does nothing without it
+[/list]
+
+
+[size=4][b]Installation[/b][/size]
+
+With a mod manager, install the archive as usual and enable it.
+
+Manual installation: open the archive and copy its contents into your Starfield [b]Data[/b] folder, so that you end up with
+
+[code]Data/SFSE/Plugins/sf360.dll
+Data/meshes/actors/human/animations/...[/code]
+
+The Data folder sits next to Starfield.exe. On a default Steam install that is steamapps/common/Starfield/Data. To uninstall, delete the files you copied.
+
+[b]You also have to enable loose files.[/b] Starfield ignores them unless you tell it not to, and this mod ships animation files that have to be read from disk. If you have already done this for another mod, skip it.
+
+Open [b]Documents/My Games/Starfield/StarfieldCustom.ini[/b], creating it if it does not exist, and make sure it contains:
+
+[code][Archive]
+bInvalidateOlderFiles=1
+sResourceDataDirsFinal=[/code]
+
+sResourceDataDirsFinal is deliberately empty. Without these two lines the character drags at the start of a movement.
+
+
+[size=4][b]About the included animation files[/b][/size]
+
+The archive includes empty replacements for the movement start animations. Those animations carry root motion that fights the rotation, so blanking them removes a slide at the start of a movement. The visual cost is negligible, and they will be dropped once the interaction is fixed properly.
+
+
+[size=4][b]Reporting a problem[/b][/size]
+
+A log is written to [b]Documents/My Games/Starfield/SFSE/Logs/sf360.log[/b]. Please attach it to any bug report.
+
+
+[size=4][b]Shout outs[/b][/size]
+
+Ian Patt and the SFSE team, for the script extender everything here is built on, and for keeping its source available.
+
+The maintainers of Address Library for SFSE Plugins, which is what lets this survive a game update.
+
+
+[size=4][b]Source[/b][/size]
+
+The mod is open source: [url=https://github.com/rael-g/360DirectionalMovement]github.com/rael-g/360DirectionalMovement[/url]
+
+The code is MIT licensed. The mod itself is released under [url=https://creativecommons.org/licenses/by/4.0/]CC BY 4.0[/url] - do what you like with it, including bundling it in a pack, as long as you credit it.

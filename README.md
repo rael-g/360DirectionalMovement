@@ -8,11 +8,20 @@ its movement direction so it simply runs, the way most third person action
 games handle it. The camera is untouched — you still aim it freely, and the
 character follows where you are going.
 
-First person is unaffected.
-
 > **Work in progress.** This is an early release. It is stable and playable,
 > but a few rough edges remain and are being worked on. Feedback and reports
 > are welcome.
+
+## Features
+
+- **The character faces where it moves.** Backwards and sideways become a real
+  run in that direction instead of a backpedal or a strafe.
+- **The camera stays yours.** Turning the body never moves the camera, and
+  aiming works exactly as it did.
+- **Smooth turns.** Direction changes are eased rather than snapped, matching
+  the rate the game turns the body on its own.
+- **Third person only.** First person is untouched.
+- **No dependencies beyond SFSE.** No framework, no ESM, no plugin slot.
 
 ## Requirements
 
@@ -22,8 +31,6 @@ First person is unaffected.
 - **[Address Library for SFSE Plugins](https://www.nexusmods.com/starfield/mods/3256)**
   — the plugin resolves the addresses it needs from this database at load time
   and does nothing without it
-
-Nothing else. No framework, no ESM.
 
 ## Installation
 
@@ -58,7 +65,7 @@ sResourceDataDirsFinal=
 `sResourceDataDirsFinal` is deliberately empty. Without these two lines the
 character drags at the start of a movement.
 
-## A note on the included animation files
+## About the included animation files
 
 The archive includes empty replacements for the movement start animations.
 Those animations carry root motion that fights the rotation, so blanking them
@@ -69,6 +76,14 @@ they will be dropped once the interaction is fixed properly.
 
 A log is written to `Documents/My Games/Starfield/SFSE/Logs/sf360.log`. Please
 attach it to any bug report.
+
+## Credits
+
+Ian Patt and the SFSE team, for the script extender everything here is built
+on, and for keeping its source available.
+
+The maintainers of Address Library for SFSE Plugins, which is what lets this
+survive a game update.
 
 ## Building
 
@@ -84,9 +99,7 @@ cmake --build build
 
 More in [docs/BUILDING.md](docs/BUILDING.md).
 
-## Source and licence
-
-Source code: <https://github.com/rael-g/360DirectionalMovement>
+## Licence
 
 The code is MIT licensed. The mod itself is released under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — do what you like
