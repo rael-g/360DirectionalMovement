@@ -8,7 +8,6 @@ The camera is untouched. You still aim it freely, and the character follows wher
 
 
 [size=4][b]Requirements[/b][/size]
-
 [list]
 [*]Starfield 1.16.244
 [*][url=https://www.nexusmods.com/starfield/mods/106]SFSE[/url]
@@ -18,11 +17,12 @@ The camera is untouched. You still aim it freely, and the character follows wher
 
 [size=4][b]Installation[/b][/size]
 
-Install with a mod manager, or copy the archive contents into your Starfield Data folder.
+Install with a mod manager, or unpack into your Starfield [b]Data[/b] folder:
 
-[b]You also have to enable loose files.[/b] The mod ships animation files that have to be read from disk, and Starfield ignores loose files unless you tell it not to. If you have already done this for another mod, skip it.
+[code]Data/SFSE/Plugins/sf360.dll
+Data/meshes/actors/human/animations/...[/code]
 
-[b]Documents/My Games/Starfield/StarfieldCustom.ini[/b] needs:
+Loose files have to be enabled. [b]Documents/My Games/Starfield/StarfieldCustom.ini[/b] needs:
 
 [code][Archive]
 bInvalidateOlderFiles=1
