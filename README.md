@@ -11,6 +11,12 @@ the camera. The camera is untouched.
 
 Starfield 1.16.244, SFSE, and Address Library for SFSE Plugins.
 
+## Where it acts
+
+Walking, jogging and jumping, with the weapon put away. Sprinting, climbing a
+ladder, zero g, sitting and having a weapon drawn are left alone: the game keeps
+the body it would have had without the mod installed.
+
 ## Switching it off in play
 
 **F11** turns the mod off and back on without leaving the game, for the places
