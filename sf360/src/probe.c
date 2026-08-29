@@ -11,10 +11,8 @@
 // quantities that move every frame and would bury the transitions.
 enum var_type { VAR_INT, VAR_BOOL };
 
-// A variable the graph does not currently declare is not the same as one
-// reading zero, and keeping them apart is the whole point: a name reads as
-// unavailable while the graph that owns it is unloaded, not only when the name
-// is wrong.
+// Distinct from a variable that reads zero: a name is unreadable while the
+// graph owning it is unloaded, not only when the name is wrong.
 #define UNREADABLE INT32_MIN
 
 struct candidate
@@ -23,11 +21,8 @@ struct candidate
     enum var_type  type;
 };
 
-// The animation graph has no drawn or holstered state, so the weapon has to be
-// looked for outside it. ActorState is the candidate: its two bitfield words
-// already carry the sit state this plugin reads, and on earlier Bethesda titles
-// the weapon state sits in the first of them. Logging the raw words on every
-// change lets drawing and holstering pick out their own bits.
+// Logs the two ActorState words on every change, so a state with no graph
+// variable can be found by watching which bits move with it.
 void probe_actor_state(void *player)
 {
     static uint32_t last_first = 0, last_second = 0;
@@ -45,10 +40,8 @@ void probe_actor_state(void *player)
     seen = true;
 }
 
-// Guessing names one build at a time cost several sessions and was wrong more
-// often than right, so this sweeps every state variable the game declares and
-// reports whichever ones move. The state being hunted identifies itself instead
-// of having to be named in advance.
+// Sweeps every state variable the game declares and reports the ones that move,
+// so a state identifies itself instead of having to be named in advance.
 #define X(name, type) { name, type },
 static const struct candidate SCANNED[] = { SF360_STATE_VARS(X) };
 #undef X
@@ -84,8 +77,8 @@ void probe_scan(void *holder)
             g_scan_last[i] = UNREADABLE;
         }
         g_scan_resolved = true;
-        // Absent variables are never mentioned again, so the opening burst is
-        // the roster of what this graph actually has.
+        // Absent variables never appear below, so the opening burst is the
+        // roster of what this graph has.
         log_line("scan: %u variables", (unsigned)SCANNED_COUNT);
     }
 

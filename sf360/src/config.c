@@ -10,10 +10,6 @@ struct config g_config = {
     .hook_post = true,
     .recapture_on_settle = true,
     .recapture_on_switch = true,
-    // 0.5 radians per hook call, which is what this was until 0.2.1, is around
-    // 1700 degrees a second at 60 fps: a cap that high never engaged, so the
-    // body was snapping to the camera. These two are in real time instead, so
-    // the turn looks the same on any machine.
     .turn_rate = 540.0f,
     .turn_smoothing = 0.1f,
     .min_speed = 0.5f,

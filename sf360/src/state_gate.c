@@ -5,20 +5,13 @@
 
 #include <stdint.h>
 
-// Every value here was measured in play with the probe builds. None of it is
-// read off the game's variable table, which declares names for graphs the
-// player does not have and says nothing about what a value means.
+// Measured in play, not read from the game's variable table, which says nothing
+// about what a value means.
 //
-//   iSyncIdleLocomotion  0 standing, 1 the whole time the character moves on
-//                        foot. Jumps and ladders are both 1.
-//   iSyncSprintState     1 for the whole sprint.
-//   iLadderClimbState   -1 off a ladder, 0 upwards while climbing one.
-//   iSyncGravity         1 in zero g, 0 on a planet, including Mars at a
-//                        gravity scale of 0.38. It marks free fall, not weak
-//                        gravity.
-//
-// Jumping is admitted by not being mentioned: iSyncIdleLocomotion holds at the
-// on foot value throughout one.
+//   iSyncIdleLocomotion  0 standing, 1 moving on foot, jumps and ladders too
+//   iSyncSprintState     1 for the whole sprint
+//   iLadderClimbState   -1 off a ladder, 0 upwards while climbing one
+//   iSyncGravity         1 in free fall, 0 under any gravity however weak
 #define LOCOMOTION_ON_FOOT 1
 #define SPRINT_INACTIVE    0
 #define LADDER_NONE        (-1)
@@ -30,21 +23,17 @@ static void *g_ladder_var = NULL;
 static void *g_gravity_var = NULL;
 static void *g_zerog_spine_var = NULL;
 
-// Recorded once per binding. The sit state comes from an offset that a game
-// update could move, so this turns "sitting broke again" into something the log
-// can answer.
+// The sit state comes from an offset a game update could move, so the raw words
+// are logged once per binding.
 static bool g_sit_logged = false;
 
-// A variable is readable only while the graph that declares it is loaded, which
-// cost three builds to learn: the ladder variables were declared absent on the
-// strength of reading unavailable while standing in a city, and they appear the
-// moment a ladder is touched. So an unreadable variable means different things
-// depending on which way the test runs, and the two directions get separate
-// helpers rather than one with a flag.
+// A variable is readable only while the graph declaring it is loaded, so
+// unreadable means opposite things depending on which way the test runs. Hence
+// two helpers rather than one with a flag.
 
-// For the condition that must be positively true. Unreadable fails it, so a
-// name that disappears in a game update stops the mod instead of leaving it
-// running on a stale assumption.
+// For a condition that must be positively true. Unreadable fails it, so a name
+// lost to a game update stops the mod rather than leaving it on a stale
+// assumption.
 static bool confirmed(void *holder, void *name, int32_t expected)
 {
     int32_t value = expected + 1;
@@ -52,8 +41,8 @@ static bool confirmed(void *holder, void *name, int32_t expected)
     return value == expected;
 }
 
-// For a veto. Unreadable clears it: the subsystem is not loaded, so the state
-// being excluded cannot be the one the character is in.
+// For a veto. Unreadable clears it: an unloaded subsystem cannot be the state
+// the character is in.
 static bool vetoed(void *holder, void *name, int32_t inactive)
 {
     int32_t value = inactive;
@@ -74,9 +63,7 @@ bool state_gate_allows(void *player)
     if (!g_gravity_var) g_gravity_var = intern_string("iSyncGravity");
     if (!g_zerog_spine_var) g_zerog_spine_var = intern_string("bZeroGSpine");
 
-    // Both of these come from ActorState rather than the graph, which has no
-    // drawn or holstered state at all: bAimActive was tried as one and reads 1
-    // with the weapon put away.
+    // From ActorState, because the graph has no drawn or holstered state.
     if (is_weapon_drawn(player)) return false;
 
     if (g_config.yield_when_sitting && is_sitting(player)) {
@@ -92,13 +79,12 @@ bool state_gate_allows(void *player)
 
     void *holder = holder_of(player);
 
-    // The one positive condition, and it is broad: it separates moving on foot
-    // from standing still and from being in furniture, and nothing else. Every
-    // test below it exists because this one admits a state it should not.
+    // The one positive condition, and it only separates moving on foot from
+    // standing still and from furniture. Every veto below exists because it
+    // admits a state it should not.
     if (!confirmed(holder, g_locomotion_var, LOCOMOTION_ON_FOOT)) return false;
 
-    // Sprinting turns too sharply under the current rate limiter, which is the
-    // complaint two users filed independently.
+    // Sprinting turns too sharply under the current rate limiter.
     if (vetoed(holder, g_sprint_var, SPRINT_INACTIVE)) return false;
 
     // Climbing: rotating the body here traps the character between decks.

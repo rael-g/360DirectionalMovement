@@ -17,50 +17,28 @@ static bool  g_failed = true;
 static bool  g_has_target = false;
 static float g_target = 0.0f;
 
-// Angle actually written. The target may jump; this chases it at a bounded
-// rate, matching how fast the game turns the body on its own.
+// The angle written to the actor, as opposed to the one asked for.
 static float g_current = 0.0f;
 
-// The first step of a movement goes straight to the target rather than being
-// eased, and the target there is the new heading, which can be half a turn from
-// where the body is pointing. So this is a visible instant flip, not the no op
-// it was originally written as.
-//
-// It was taken out and put back. Easing it instead changes nothing either way
-// that play or the log could tell apart, and the shipped versions have always
-// snapped, so it stays until there is a reason to prefer the other one.
+// Set to take the next step straight to the target instead of easing it.
 static bool  g_snap_next = false;
 
-// Radians per second. Kept between calls because it is what makes the body
-// accelerate into a turn: a step computed from the remaining arc alone is at
-// full speed on its very first frame, which is the part that still read as
-// abrupt once the arrival had been smoothed.
+// Radians per second, carried between steps so a turn can accelerate.
 static float g_velocity = 0.0f;
 
-// Converts the configured settle time into the spring's frequency. A spring at
-// this frequency covers most of the arc within the time asked for.
 #define SETTLE_TIME_TO_FREQUENCY 2.0f
-
-// The drag coefficient that makes the spring critically damped, meaning it
-// arrives without swinging past. It belongs to the equation rather than to
-// taste, so it is not a setting.
 #define CRITICAL_DAMPING 2.0f
 
-// Above this, the explicit integration below stops being stable and the body
-// would oscillate. Reached only when the frame is long relative to the settle
-// time, and handled by slowing the response rather than letting it ring.
+// Beyond this the integration below rings instead of settling.
 #define STABLE_FREQUENCY_TIMES_FRAME 1.0f
 
 static volatile long g_calls = 0;
 
-// A frame this long was a load screen or an alt tab, not a frame. Scaling a
-// step by it would cover the whole arc at once, so it is charged as one
-// ordinary frame instead.
+// Longer than this was a load screen, not a frame, and is charged as one frame.
 #define LONGEST_FRAME 0.1f
 
-// The graph update carries no timestep this code can reach, and the hook does
-// not fire at a fixed rate, so anything measured per call is really per frame
-// and turns faster on a faster machine. This measures the wall clock instead.
+// The graph update carries no timestep reachable from here, and the hook does
+// not fire at a fixed rate, so the interval is measured off the wall clock.
 static double g_seconds_per_tick = 0.0;
 static LARGE_INTEGER g_last_tick = { 0 };
 
@@ -68,9 +46,7 @@ static float elapsed_seconds(void)
 {
     if (g_seconds_per_tick == 0.0) {
         LARGE_INTEGER frequency;
-        // Without a clock the step has nothing to scale by. Reporting the
-        // longest accepted frame keeps the body turning, slowly and at the
-        // wrong speed, rather than freezing it facing one way.
+        // Turning at the wrong speed beats not turning at all.
         if (!QueryPerformanceFrequency(&frequency) || frequency.QuadPart == 0)
             return LONGEST_FRAME;
         g_seconds_per_tick = 1.0 / (double)frequency.QuadPart;
@@ -81,7 +57,6 @@ static float elapsed_seconds(void)
     const LONGLONG previous = g_last_tick.QuadPart;
     g_last_tick = now;
 
-    // No previous sample, so there is no interval to report yet.
     if (previous == 0) return 0.0f;
 
     const float dt = (float)((double)(now.QuadPart - previous) * g_seconds_per_tick);
@@ -104,17 +79,14 @@ static float step_toward_target(void)
         return g_current;
     }
 
-    // The hook fires more than once per frame. Without an interval there is no
-    // step to take, and taking a full one anyway would turn several times as
-    // fast on whichever machine calls it most often.
+    // The hook can fire twice within one tick, and a step unscaled by an
+    // interval would turn faster the more often that happens.
     if (dt <= 0.0f) return g_current;
 
     const float delta = wrap_signed(g_target - g_current);
 
     if (g_config.turn_smoothing > 0.0f) {
-        // A pull towards the target opposed by a drag on the current speed.
-        // Both ends of the turn come out eased, which is the part a step
-        // proportional to the remaining arc cannot do.
+        // Critically damped: eased at both ends, arriving without overshoot.
         float omega = SETTLE_TIME_TO_FREQUENCY / g_config.turn_smoothing;
         if (omega * dt > STABLE_FREQUENCY_TIMES_FRAME)
             omega = STABLE_FREQUENCY_TIMES_FRAME / dt;
@@ -124,8 +96,7 @@ static float step_toward_target(void)
         g_velocity = delta / dt;
     }
 
-    // The easing alone still swings fast when the arc is wide, so a ceiling on
-    // the speed keeps a half turn from happening in a couple of frames.
+    // The spring alone swings fast when the arc is wide.
     if (g_config.turn_rate > 0.0f) {
         const float cap = g_config.turn_rate * SF360_DEG_TO_RAD;
         if (g_velocity > cap) g_velocity = cap;
@@ -134,9 +105,7 @@ static float step_toward_target(void)
 
     float step = g_velocity * dt;
 
-    // The speed ceiling can leave the body carrying more speed than the arc has
-    // left to give, so the last step is trimmed. Passing the target and coming
-    // back is a wobble, and it is worse than arriving a frame early.
+    // Arriving a frame early beats passing the target and coming back.
     if ((delta >= 0.0f && step > delta) || (delta <= 0.0f && step < delta)) {
         step = delta;
         g_velocity = 0.0f;
@@ -243,9 +212,8 @@ void rotator_reset(float current_angle)
     g_current = current_angle;
     g_velocity = 0.0f;
     g_snap_next = true;
-    // The previous step may have been long ago, and an interval measured back
-    // to it would spend the whole gap in one step, which is the snap again
-    // wearing a different hat. The next step measures from now instead.
+    // The next step measures from now, not back across however long the body
+    // spent standing still.
     g_last_tick.QuadPart = 0;
 }
 

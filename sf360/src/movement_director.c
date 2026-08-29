@@ -42,9 +42,8 @@ static float g_offset = 0.0f;
 static float g_previous_heading = 0.0f;
 static float g_last_direction = NO_DIRECTION;
 
-// Octant the movement direction was in when the offset was last taken. A change
-// of octant is what separates the player asking for a new direction from the
-// drift our own rotation feeds back into the reading.
+// Octant the direction was in when the offset was last taken. A change of
+// octant separates a new direction from the drift our own rotation feeds back.
 #define NO_OCTANT (-1)
 static int g_last_octant = NO_OCTANT;
 
@@ -122,21 +121,14 @@ static void begin_movement(float angle, float relative, float camera_yaw,
 
 static void maintain_offset(float direction, float heading, float camera_yaw)
 {
-    // `Direction` returns to roughly zero once the body faces the movement.
-    // Leaving that octant means the player changed direction, so the captured
-    // offset no longer describes intent.
+    // A change of octant means the player asked for a new direction, so the
+    // captured offset no longer describes intent. The replacement is taken on
+    // this sample because the body has not turned yet, leaving the heading
+    // still describing intent rather than our own rotation.
     //
-    // The new offset is taken here and now, for the same reason the start of a
-    // movement takes one: on the first sample after the input changes the body
-    // has not turned yet, so the heading still describes intent rather than our
-    // own rotation. Deferring to the settle test instead would never capture
-    // while the player keeps turning, because the heading never stops moving.
-    // Not gated on having settled. The game blends `Direction` towards a new
-    // input an eighth of a turn at a time, so a quick change of direction is a
-    // sweep across several samples and the heading does not hold still for any
-    // of them. Waiting for it to settle meant that during exactly the movement
-    // that needs the most correction, the offset was never recaptured at all
-    // and the body held its opening direction until the player stopped.
+    // Deliberately not gated on having settled: the game blends `Direction`
+    // towards a new input an eighth of a turn at a time, so during a quick
+    // change the heading never holds still and nothing would ever settle.
     if (g_config.recapture_on_switch) {
         const int octant = octant_of(direction);
         if (octant != g_last_octant) {
