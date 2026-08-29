@@ -32,30 +32,35 @@ probe that reports unavailability apart from zero.
 | `iSightedRequested` | goes to 1 on requests that never become sighted, so it is not the aim signal |
 | `bAimActive` | alternates 0 and 1 across the weapon part of the session |
 
-`bAimActive` was first read as frame to frame flicker, and that was a mistake:
-the probe logs only when something changes, so consecutive rows are state
-changes and not consecutive frames. The alternation is consistent with a weapon
-being drawn and holstered repeatedly, which is what that part of the session
-was. It is the only candidate for weapon drawn the table offers, since
-everything else it declares on the subject is transient: `bIsEquipping`,
-`bIsUnequipping`, `UnequipInterruptable`. Treated as the weapon signal on that
-basis, and unconfirmed.
+`bAimActive` was read two wrong ways before being ruled out. First as frame to
+frame flicker, which the probe cannot show, because it logs only on change.
+Then as the weapon being drawn and holstered, which fitted that part of the
+session. Shipped on that inference in rc6 and refuted in one run: it reads 1
+with the weapon holstered and never changes, so the gate built on it disabled
+the mod outright.
+
+There is no drawn or holstered state in the player's graph. Everything the
+table declares on the subject is transient: `bIsEquipping`, `bIsUnequipping`,
+`UnequipInterruptable`. A weapon gate needs a signal from somewhere other than
+the animation graph.
 
 ## The rule
 
-    iSyncIdleLocomotion == 1 && iSyncSprintState == 0 && iSyncJumpState == 0
+    iSyncIdleLocomotion == 1 && iSyncSprintState == 0
 
-Walking and jogging, nothing else. Ladders, zero g and furniture are not named
+Walking, jogging and jumping. Ladders, zero g and furniture are not named
 anywhere in it, and do not need to be: they are excluded by not being the on
-foot value.
+foot value. Jumping is admitted the same way, by not being mentioned.
 
 A failed read counts as not allowed, so a name that disappears in a game update
 stops the mod rather than letting it run somewhere it breaks.
 
 ## Left open
 
-Sprint and jump are excluded rather than fixed. The sprint turn is the one users
-describe as too snappy, and the jump still slides.
+Sprint is excluded rather than fixed: its turn is the one users describe as too
+snappy.
 
-`iIsSighted` is the confirmed signal for the aim lock users asked for, and is
-unused so far: the mod still acts armed and unarmed alike.
+The mod still acts armed and unarmed alike, because nothing in the graph says
+which. `iIsSighted` is confirmed and would carry an aim lock, but aiming is a
+narrower state than holding a weapon, so it does not answer the request to stand
+down while armed.
