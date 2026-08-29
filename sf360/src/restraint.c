@@ -16,13 +16,16 @@
 // interesting happened, so they are masked out of the change test.
 #define MOVEMENT_BITS 0xFFu
 
-// Only rotate while the graph says the rotation is code driven. The name is the
-// game's own, from anim_variables.xtbl, and it reads 1 throughout normal
-// walking, so a furniture animation taking the wheel should read 0.
+// Sitting runs a four step sequence in the second state word, bits 11 and 12,
+// counting 0, 1, 2, 3 and returning to 0 when the character is settled. It was
+// read straight out of a playtest, as actorState2 going 0x2080, 0x2880, 0x3080,
+// 0x3880 and back, with the graph reporting rotation as not code driven for the
+// whole of it.
 //
-// This replaces a guess at the actor state bits: the top nibble was 3 for the
-// whole of a session, moving or not, so it is not the sit state.
-#define YIELD_WHEN_NOT_CODE_DRIVEN 1
+// Preferred over IsUsingCodeDrivenRotation, which agreed on sitting but also
+// read 0 during ordinary movement for long enough to trip the watchdog.
+#define SIT_SHIFT 11
+#define SIT_MASK  0x3u
 
 // A wrong guess must not cost the mod. If the gate holds while the player is
 // plainly moving for this many consecutive updates, roughly a few seconds, the
@@ -91,21 +94,30 @@ void restraint_observe(void *player, float speed)
     }
 }
 
+// Loading a save must not inherit a watchdog that fired an hour ago. The flag
+// used to survive every reload, so one false positive cost the rest of the
+// session and could not be undone from inside the game.
+void restraint_reset(void)
+{
+    g_held = 0;
+    g_abandoned = false;
+}
+
 bool restraint_blocks(void *player)
 {
     if (g_abandoned) return false;
 
-    bool driven = false;
-    if (!code_driven(holder_of(player), &driven)) return false;
-
-    if (driven == YIELD_WHEN_NOT_CODE_DRIVEN) {
+    const uint32_t *words = (const uint32_t *)((const char *)player
+                                               + ACTOR_STATE_OFFSET);
+    if (((words[1] >> SIT_SHIFT) & SIT_MASK) == 0) {
         g_held = 0;
         return false;
     }
 
     if (++g_held > WATCHDOG_UPDATES) {
-        log_line("restraint: held for %d moving updates, IsUsingCodeDrivenRotation"
-                 " is not the signal; yielding disabled for this session", g_held);
+        log_line("restraint: held for %d moving updates, actorState2 bits 11-12"
+                 " are not the sit state; yielding disabled until the next load",
+                 g_held);
         g_abandoned = true;
         return false;
     }

@@ -12,6 +12,10 @@
 // count as moving, because that is where sitting may well live.
 void restraint_observe(void *player, float speed);
 
+// Clears the watchdog. Called when the player object is bound again, so that a
+// reload starts from a clean slate.
+void restraint_reset(void);
+
 // True while the game owns the body's rotation. Called only on the moving path,
 // so that a wrong answer here always costs something visible.
 bool restraint_blocks(void *player);

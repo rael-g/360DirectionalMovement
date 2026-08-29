@@ -82,6 +82,7 @@ static bool rebind(void *player)
     g_settled = false;
     g_last_direction = NO_DIRECTION;
     diagnostics_reset();
+    restraint_reset();
     rotator_install(player);
     return true;
 }
