@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+### Added
+
+- F11 switches the mod off and back on without leaving the game
+
 ## 0.1.1
 
 ### Fixed
