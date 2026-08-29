@@ -11,6 +11,19 @@ the camera. The camera is untouched.
 
 Starfield 1.16.244, SFSE, and Address Library for SFSE Plugins.
 
+## Switching it off in play
+
+**F11** turns the mod off and back on without leaving the game, for the places
+where it still misbehaves: ladders, zero g, sitting down in a cockpit.
+
+To move it elsewhere, put a
+[virtual key code](https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
+in `Data/SFSE/Plugins/sf360.ini`. `0` removes the shortcut.
+
+```
+toggleKey=122
+```
+
 ## Building
 
 Any MSVC ABI toolchain. From Linux: `clang`, `lld`, `cmake`, `ninja` and
