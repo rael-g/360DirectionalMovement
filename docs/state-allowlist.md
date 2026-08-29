@@ -30,7 +30,16 @@ probe that reports unavailability apart from zero.
 | `bPlayerMoveStartActive` | a single frame pulse when a movement starts |
 | `iIsSighted` | 1 exactly while aiming down sights, with `iSyncSighted` alongside it |
 | `iSightedRequested` | goes to 1 on requests that never become sighted, so it is not the aim signal |
-| `bAimActive` | flips between 0 and 1 frame to frame while a weapon is out; not a state |
+| `bAimActive` | alternates 0 and 1 across the weapon part of the session |
+
+`bAimActive` was first read as frame to frame flicker, and that was a mistake:
+the probe logs only when something changes, so consecutive rows are state
+changes and not consecutive frames. The alternation is consistent with a weapon
+being drawn and holstered repeatedly, which is what that part of the session
+was. It is the only candidate for weapon drawn the table offers, since
+everything else it declares on the subject is transient: `bIsEquipping`,
+`bIsUnequipping`, `UnequipInterruptable`. Treated as the weapon signal on that
+basis, and unconfirmed.
 
 ## The rule
 
