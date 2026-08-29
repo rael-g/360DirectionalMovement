@@ -191,6 +191,7 @@ void movement_director_update(void)
     // are the ones the mod refuses to run in, so sampling below a gate would
     // record everything except what is being looked for.
     probe_update(holder);
+    probe_actor_state(player);
 
     // Switched off from the keyboard. Below accumulate_travel for the same
     // reason as the sitting gate: the position has to stay current so whatever

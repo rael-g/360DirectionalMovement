@@ -90,6 +90,28 @@ static int32_t sample(void *holder, size_t i)
     return (int32_t)lroundf(v * FLOAT_QUANTUM);
 }
 
+// The animation graph has no drawn or holstered state, so the weapon has to be
+// looked for outside it. ActorState is the candidate: its two bitfield words
+// already carry the sit state this plugin reads, and on earlier Bethesda titles
+// the weapon state sits in the first of them. Logging the raw words on every
+// change lets drawing and holstering pick out their own bits.
+void probe_actor_state(void *player)
+{
+    static uint32_t last_first = 0, last_second = 0;
+    static bool seen = false;
+
+    if (!g_config.probe_states) return;
+
+    uint32_t first = 0, second = 0;
+    get_actor_state(player, &first, &second);
+    if (seen && first == last_first && second == last_second) return;
+
+    log_line("actorstate: 1=0x%08X 2=0x%08X", first, second);
+    last_first = first;
+    last_second = second;
+    seen = true;
+}
+
 void probe_update(void *holder)
 {
     if (!g_config.probe_states) return;

@@ -3,7 +3,7 @@ project(sf360 VERSION 0.2.0 LANGUAGES C CXX)
 
 # CMake versions are numeric only, so the pre-release suffix is carried apart.
 # Empty on a final release.
-set(SF360_PRERELEASE "-rc7")
+set(SF360_PRERELEASE "-rc8")
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
