@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <windows.h>
 
 struct config g_config = {
     .hook_post = true,
@@ -12,6 +13,9 @@ struct config g_config = {
     .max_step = 0.5f,
     .min_speed = 0.5f,
     .yield_when_sitting = true,
+    // F11. F5 and F9 are the game's quicksave and quickload, and F12 is the
+    // Steam screenshot, so this is the nearest key that is free by default.
+    .toggle_key = VK_F11,
 };
 
 void config_load(void)
@@ -37,6 +41,8 @@ void config_load(void)
         else if (!strcmp(key, "maxStep")) g_config.max_step = value;
         else if (!strcmp(key, "minSpeed")) g_config.min_speed = value;
         else if (!strcmp(key, "yieldWhenSitting")) g_config.yield_when_sitting = on;
+        // A virtual key code, not a flag, so the whole value is kept.
+        else if (!strcmp(key, "toggleKey")) g_config.toggle_key = (int)value;
         // Silently ignoring a key means editing it appears to do nothing, and
         // the reader concludes the behaviour it names is irrelevant.
         else log_line("config: ignoring unknown key '%s'", key);

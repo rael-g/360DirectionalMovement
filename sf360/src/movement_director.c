@@ -6,6 +6,7 @@
 #include "layout_check.h"
 #include "log.h"
 #include "rotator.h"
+#include "toggle.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -169,6 +170,8 @@ static float measured_heading(void)
 
 void movement_director_update(void)
 {
+    toggle_update();
+
     void *player = get_player();
     if (!player) return;
 
@@ -181,6 +184,18 @@ void movement_director_update(void)
     // a chair with a stale sample would charge the whole displacement of the
     // animation to the first update of the next movement.
     accumulate_travel(player);
+
+    // Switched off from the keyboard. Below accumulate_travel for the same
+    // reason as the sitting gate: the position has to stay current so whatever
+    // happened while the mod was off is not charged to the first update after
+    // it comes back.
+    //
+    // The hooks stay installed and go inert on the cleared target, which avoids
+    // restoring vtable slots that another plugin may have swapped since.
+    if (!toggle_enabled()) {
+        end_movement();
+        return;
+    }
 
     // Sitting down, entering a cockpit, lying down: the game turns the body to
     // match the furniture, and writing our own angle over it swings the camera

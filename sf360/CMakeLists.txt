@@ -26,7 +26,8 @@ add_library(sf360 SHARED
     src/movement_director.c
     src/paths.c
     src/plugin.c
-    src/rotator.c)
+    src/rotator.c
+    src/toggle.c)
 
 target_include_directories(sf360 PRIVATE
     ${SFSE_SRC}/sfse ${SFSE_SRC}/sfse_common ${SFSE_SRC})

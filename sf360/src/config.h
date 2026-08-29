@@ -12,6 +12,8 @@ struct config
     float max_step;            // radians per graph update; 0 means snap
     float min_speed;           // Speed above which the actor counts as moving
     bool  yield_when_sitting;  // leave the body alone while sitting or sleeping
+    int   toggle_key;          // virtual key code that switches the mod on and
+                               // off in play; 0 removes the shortcut
 };
 
 extern struct config g_config;
