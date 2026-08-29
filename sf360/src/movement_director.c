@@ -9,6 +9,7 @@
 
 #include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 // A graph variable that could not be read stays distinguishable from one that
 // legitimately reads zero.
@@ -78,7 +79,6 @@ static bool rebind(void *player)
     g_settled = false;
     g_last_direction = NO_DIRECTION;
     diagnostics_reset();
-    restraint_bind(holder_of(player));
     rotator_install(player);
     return true;
 }
@@ -176,7 +176,7 @@ void movement_director_update(void)
     // Sitting down, entering the cockpit, lying down: the game rotates the body
     // to match the furniture, and our writes fight it all the way in, which is
     // what leaves the character seated crooked.
-    if (g_config.yield_when_held && restraint_blocks(holder)) {
+    if (g_config.yield_when_held && restraint_blocks(player)) {
         end_movement();
         return;
     }

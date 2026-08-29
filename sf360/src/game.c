@@ -3,6 +3,7 @@
 
 typedef void (*get_entry_fn)(void **out, const char *text, bool case_sensitive);
 typedef bool (*read_float_fn)(void *, void *const *, float *);
+typedef bool (*read_int_fn)(void *, void *const *, int32_t *);
 typedef bool (*read_bool_fn)(void *, void *const *, bool *);
 
 void *intern_string(const char *text)
@@ -39,6 +40,15 @@ bool read_graph_float(void *holder, void *interned_name, float *out)
     void **vtable = *(void ***)holder;
     if (!inside_module(vtable) || !inside_module(vtable[SLOT_FLOAT])) return false;
     return ((read_float_fn)vtable[SLOT_FLOAT])(holder, &interned_name, out);
+}
+
+// Most of the graph's flags are declared Integer rather than Boolean, so this
+// is not the rare case it looks like.
+bool read_graph_int(void *holder, void *interned_name, int32_t *out)
+{
+    void **vtable = *(void ***)holder;
+    if (!inside_module(vtable) || !inside_module(vtable[SLOT_INT])) return false;
+    return ((read_int_fn)vtable[SLOT_INT])(holder, &interned_name, out);
 }
 
 bool read_graph_bool(void *holder, void *interned_name, bool *out)

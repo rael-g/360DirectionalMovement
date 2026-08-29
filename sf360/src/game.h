@@ -18,6 +18,7 @@
 
 #define HOLDER_OFFSET   0x60
 #define SLOT_FLOAT      0x12
+#define SLOT_INT        0x13
 #define SLOT_BOOL       0x14
 #define SLOT_PRE_UPDATE 0x15
 #define SLOT_POST_UPDATE 0x16
@@ -44,6 +45,7 @@ static inline void *holder_of(void *refr)
 }
 
 bool read_graph_float(void *holder, void *interned_name, float *out);
+bool read_graph_int(void *holder, void *interned_name, int32_t *out);
 bool read_graph_bool(void *holder, void *interned_name, bool *out);
 
 float get_angle_z(void *refr);
