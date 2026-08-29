@@ -23,6 +23,8 @@
 static void *g_locomotion_var = NULL;
 static void *g_sprint_var = NULL;
 static void *g_ladder_var = NULL;
+static void *g_gravity_var = NULL;
+static void *g_zerog_spine_var = NULL;
 
 // The weapon test does not come from the graph, which has no drawn or holstered
 // state: bAimActive was tried as one and reads 1 with the weapon away. It comes
@@ -39,11 +41,23 @@ static bool reads(void *holder, void *name, int32_t expected)
     return value == expected;
 }
 
+// For vetoes, where an unreadable variable means the subsystem behind it is not
+// loaded and so cannot be the state being excluded. The opposite of reads(),
+// which is used for the one condition that has to be positively true.
+static bool is_zero(void *holder, void *name)
+{
+    int32_t value = 0;
+    if (!read_graph_int(holder, name, &value)) return true;
+    return value == 0;
+}
+
 bool locomotion_allowed(void *player)
 {
     if (!g_locomotion_var) g_locomotion_var = intern_string("iSyncIdleLocomotion");
     if (!g_sprint_var) g_sprint_var = intern_string("iSyncSprintState");
     if (!g_ladder_var) g_ladder_var = intern_string("iLadderClimbState");
+    if (!g_gravity_var) g_gravity_var = intern_string("iSyncGravity");
+    if (!g_zerog_spine_var) g_zerog_spine_var = intern_string("bZeroGSpine");
 
     if (is_weapon_drawn(player)) return false;
 
@@ -65,6 +79,13 @@ bool locomotion_allowed(void *player)
     int32_t climb = LADDER_NONE;
     if (read_graph_int(holder, g_ladder_var, &climb) && climb != LADDER_NONE)
         return false;
+
+    // Zero g leaves no trace in ActorState, so it has to come from the graph.
+    // Both of these read zero on a planet, including a low gravity one: Mars
+    // has fGravityScale at 0.38 with iSyncGravity still at zero, so this is
+    // about being in free fall rather than about how strong gravity is.
+    if (!is_zero(holder, g_gravity_var)) return false;
+    if (!is_zero(holder, g_zerog_spine_var)) return false;
 
     return true;
 }
