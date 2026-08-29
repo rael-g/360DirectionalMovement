@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(sf360 VERSION 0.2.0 LANGUAGES C CXX)
+project(sf360 VERSION 0.2.1 LANGUAGES C CXX)
 
 # CMake versions are numeric only, so the pre-release suffix is carried apart.
 # Empty on a final release.

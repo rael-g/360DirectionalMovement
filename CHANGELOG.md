@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.1
+
+### Changed
+
+- The turn accelerates and settles instead of following the camera exactly
+
+### Fixed
+
+- Turning speed no longer changes with the frame rate
+- A quick change of direction no longer leaves the body facing the old way
+
+### Known issues
+
+- Turning is still not as smooth as the game's own
+- A half turn can make the character duck partway through
+- The body drifts off course during a jump
+- Movement start animations are blank, so a sharp start looks wrong
+
 ## 0.2.0
 
 ### Added
