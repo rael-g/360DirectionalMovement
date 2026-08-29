@@ -17,7 +17,8 @@
 // statement about the state rather than a comparison against a bare number.
 #define LOCOMOTION_ON_FOOT 1
 #define SPRINT_INACTIVE    0
-#define LADDER_INACTIVE    0
+// Off a ladder the variable reads -1, not 0: zero is one of the climb states.
+#define LADDER_NONE        (-1)
 
 static void *g_locomotion_var = NULL;
 static void *g_sprint_var = NULL;
@@ -61,8 +62,8 @@ bool locomotion_allowed(void *player)
     // named. iLadderClimbState is readable only while the ladder subsystem is
     // loaded, which is why earlier probes reported it as absent: a failed read
     // here means no ladder, not a wrong name.
-    int32_t climb = LADDER_INACTIVE;
-    if (read_graph_int(holder, g_ladder_var, &climb) && climb != LADDER_INACTIVE)
+    int32_t climb = LADDER_NONE;
+    if (read_graph_int(holder, g_ladder_var, &climb) && climb != LADDER_NONE)
         return false;
 
     return true;
