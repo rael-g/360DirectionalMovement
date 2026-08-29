@@ -10,8 +10,13 @@
 //   PlayerCharacter singleton ............ Address Library ID 922868
 //   BSStringPool::GetEntry ............... Address Library ID 1186742
 //   IAnimationGraphManagerHolder ......... subobject at TESObjectREFR + 0x60
-//   GetGraphVariableImpl{Float,Bool} ..... vtable slots 0x12, 0x14
+//   GetGraphVariableImpl{Float,Int,Bool} . vtable slots 0x12, 0x13, 0x14
 //   Pre/PostUpdateAnimationGraphManager .. vtable slots 0x15, 0x16
+//
+// One offset here is measured rather than taken from CommonLibSF, which puts
+// ActorState at Actor + 0xE8 and so its first bitfield word at 0xF0. On this
+// build 0xF0 holds a pointer into the game, so the subobject starts there and
+// the two words follow at 0xF8. Found by dumping the neighbourhood in play.
 
 #define ID_PLAYER_SINGLETON 922868u
 #define ID_GET_ENTRY        1186742u
@@ -27,6 +32,9 @@
 // whose z component is at +8, followed by location.
 #define ANGLE_Z_OFFSET  (0x80 + 8)
 #define LOCATION_OFFSET (0x80 + 0x0C)
+
+// ActorState's two bitfield words, actorState1 then actorState2.
+#define ACTOR_STATE_OFFSET 0xF8
 
 // Addresses below this are never valid user space pointers on Win64.
 #define MIN_VALID_POINTER 0x10000
@@ -51,3 +59,11 @@ bool read_graph_bool(void *holder, void *interned_name, bool *out);
 float get_angle_z(void *refr);
 void  write_angle_z(void *refr, float radians);
 void  get_planar_position(void *refr, float *x, float *y);
+
+// Zero while the actor is free standing. Sitting down runs it through a four
+// step sequence and it stays non zero until the actor gets up again, so the
+// whole range means "the game is placing the body, not the player".
+uint32_t get_sit_state(void *refr);
+
+// The raw pair behind get_sit_state, for the one log line that records it.
+void get_actor_state(void *refr, uint32_t *first, uint32_t *second);

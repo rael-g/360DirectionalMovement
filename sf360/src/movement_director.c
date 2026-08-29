@@ -4,7 +4,7 @@
 #include "diagnostics.h"
 #include "game.h"
 #include "layout_check.h"
-#include "restraint.h"
+#include "log.h"
 #include "rotator.h"
 
 #include <math.h>
@@ -44,6 +44,11 @@ static float g_last_x = 0.0f, g_last_y = 0.0f;
 static float g_travel_x = 0.0f, g_travel_y = 0.0f;
 static float g_sampled_x = 0.0f, g_sampled_y = 0.0f;
 
+// The sit state is read from a measured offset, so a game update could move it
+// under us. Recording it once per load costs one line and turns "sitting broke
+// again" into a question the log can answer.
+static bool g_sit_logged = false;
+
 static float read_or_unavailable(void *holder, void *name)
 {
     float v = UNAVAILABLE;
@@ -82,7 +87,7 @@ static bool rebind(void *player)
     g_settled = false;
     g_last_direction = NO_DIRECTION;
     diagnostics_reset();
-    restraint_reset();
+    g_sit_logged = false;
     rotator_install(player);
     return true;
 }
@@ -172,10 +177,29 @@ void movement_director_update(void)
     if (player != g_player && !rebind(player)) return;
 
     void *holder = holder_of(player);
-    // Kept above the restraint gate so the position stays current: coming out of
+    // Kept above every early return so the position stays current: coming out of
     // a chair with a stale sample would charge the whole displacement of the
     // animation to the first update of the next movement.
     accumulate_travel(player);
+
+    // Sitting down, entering a cockpit, lying down: the game turns the body to
+    // match the furniture, and writing our own angle over it swings the camera
+    // through the animation and leaves the character seated crooked.
+    //
+    // Tested before speed, not after. The graph reports speed for as long as
+    // the character stays seated, so anything behind the speed test would see
+    // sitting as ordinary movement.
+    if (g_config.yield_when_sitting && get_sit_state(player) != 0) {
+        if (!g_sit_logged) {
+            uint32_t first = 0, second = 0;
+            get_actor_state(player, &first, &second);
+            log_line("sitting: actorState1=0x%08X actorState2=0x%08X",
+                     first, second);
+            g_sit_logged = true;
+        }
+        end_movement();
+        return;
+    }
 
     float speed = 0.0f, direction = 0.0f;
     if (!read_graph_float(holder, g_speed_var, &speed)) return;
@@ -184,21 +208,7 @@ void movement_director_update(void)
     int32_t first_person = 0;
     read_graph_int(holder, g_first_person_var, &first_person);
 
-    restraint_observe(player, speed);
-
     if (speed <= g_config.min_speed || first_person) {
-        end_movement();
-        return;
-    }
-
-    // Sitting down, entering the cockpit, lying down: the game rotates the body
-    // to match the furniture, and our writes fight it all the way in, which is
-    // what leaves the character seated crooked.
-    //
-    // Placed after the speed test on purpose. Standing still needs no yielding,
-    // and keeping the gate on the moving path is what lets its watchdog count
-    // only updates where blocking actually costs something.
-    if (g_config.yield_when_held && restraint_blocks(player)) {
         end_movement();
         return;
     }

@@ -11,7 +11,7 @@ struct config g_config = {
     .recapture_on_switch = true,
     .max_step = 0.5f,
     .min_speed = 0.5f,
-    .yield_when_held = true,
+    .yield_when_sitting = true,
 };
 
 void config_load(void)
@@ -36,7 +36,7 @@ void config_load(void)
         else if (!strcmp(key, "recaptureOnSwitch")) g_config.recapture_on_switch = on;
         else if (!strcmp(key, "maxStep")) g_config.max_step = value;
         else if (!strcmp(key, "minSpeed")) g_config.min_speed = value;
-        else if (!strcmp(key, "yieldWhenHeld")) g_config.yield_when_held = on;
+        else if (!strcmp(key, "yieldWhenSitting")) g_config.yield_when_sitting = on;
         // Silently ignoring a key means editing it appears to do nothing, and
         // the reader concludes the behaviour it names is irrelevant.
         else log_line("config: ignoring unknown key '%s'", key);

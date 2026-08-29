@@ -3,7 +3,7 @@ project(sf360 VERSION 0.1.1 LANGUAGES C CXX)
 
 # CMake versions are numeric only, so the pre-release suffix is carried apart.
 # Empty on a final release.
-set(SF360_PRERELEASE "")
+set(SF360_PRERELEASE "-rc9")
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -26,7 +26,6 @@ add_library(sf360 SHARED
     src/movement_director.c
     src/paths.c
     src/plugin.c
-    src/restraint.c
     src/rotator.c)
 
 target_include_directories(sf360 PRIVATE

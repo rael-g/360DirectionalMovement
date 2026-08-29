@@ -38,10 +38,10 @@ bool sf360_startup(uint32_t sfse_version, uint32_t runtime_version)
 
     log_line("--- 360 Directional Movement " SF360_VERSION " ---");
     log_line("config: hookPost=%d recaptureOnSettle=%d recaptureOnSwitch=%d "
-             "maxStep=%.3f minSpeed=%.3f yieldWhenHeld=%d",
+             "maxStep=%.3f minSpeed=%.3f yieldWhenSitting=%d",
              g_config.hook_post, g_config.recapture_on_settle,
              g_config.recapture_on_switch, g_config.max_step,
-             g_config.min_speed, g_config.yield_when_held);
+             g_config.min_speed, g_config.yield_when_sitting);
     log_line("sfse %u.%u.%u | runtime %u.%u.%u",
              GET_EXE_VERSION_MAJOR(sfse_version),
              GET_EXE_VERSION_MINOR(sfse_version),

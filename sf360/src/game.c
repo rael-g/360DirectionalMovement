@@ -74,3 +74,26 @@ void get_planar_position(void *refr, float *x, float *y)
     *x = p[0];
     *y = p[1];
 }
+
+void get_actor_state(void *refr, uint32_t *first, uint32_t *second)
+{
+    const uint32_t *words = (const uint32_t *)((char *)refr + ACTOR_STATE_OFFSET);
+    *first = words[0];
+    *second = words[1];
+}
+
+// The sit and sleep state occupies bits 11 and 12 of the second word. Measured
+// in play: sitting down walks it through 1, 2 and 3 while the entry animation
+// places the body, holds at 3 for as long as the character stays seated, and
+// returns to 0 on standing up.
+//
+// The Skyrim assignment, a four bit field at 14 to 17 of the *first* word, does
+// not hold here. Under it the walking and running bits would be 6 to 8, and
+// those never move in this game; its low byte carries four two bit fields
+// instead.
+uint32_t get_sit_state(void *refr)
+{
+    uint32_t first = 0, second = 0;
+    get_actor_state(refr, &first, &second);
+    return (second >> 11) & 0x3u;
+}
