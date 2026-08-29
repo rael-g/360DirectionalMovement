@@ -5,6 +5,9 @@
 #define SF360_TWO_PI 6.2831853f
 #define SF360_PI     3.14159265f
 #define SF360_RAD_TO_DEG 57.2958f
+// Settings a player edits are written in degrees. Everything the game hands us
+// is in radians.
+#define SF360_DEG_TO_RAD 0.0174533f
 
 // Movement input is quantised to eighths of a turn.
 #define SF360_OCTANTS 8
