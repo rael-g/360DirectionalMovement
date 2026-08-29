@@ -55,7 +55,10 @@ static bool resolve_variables(void)
 {
     if (!g_speed_var) g_speed_var = intern_string("Speed");
     if (!g_direction_var) g_direction_var = intern_string("Direction");
-    if (!g_first_person_var) g_first_person_var = intern_string("IsFirstPerson");
+    // Named 'bIsFirstPerson' and declared Integer, not 'IsFirstPerson' and
+    // Boolean. The Skyrim spelling reads nothing, so first person was never
+    // actually detected before.
+    if (!g_first_person_var) g_first_person_var = intern_string("bIsFirstPerson");
     if (!g_camera_yaw_var) g_camera_yaw_var = intern_string("fCameraYaw");
     return g_speed_var && g_direction_var;
 }
@@ -185,8 +188,8 @@ void movement_director_update(void)
     if (!read_graph_float(holder, g_speed_var, &speed)) return;
     if (!read_graph_float(holder, g_direction_var, &direction)) return;
 
-    bool first_person = false;
-    read_graph_bool(holder, g_first_person_var, &first_person);
+    int32_t first_person = 0;
+    read_graph_int(holder, g_first_person_var, &first_person);
 
     if (speed <= g_config.min_speed || first_person) {
         end_movement();
