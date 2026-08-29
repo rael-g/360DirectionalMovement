@@ -21,10 +21,9 @@
 static void *g_locomotion_var = NULL;
 static void *g_sprint_var = NULL;
 
-// There is no weapon test here. bAimActive was tried as one and refuted in a
-// single run: it reads 1 with the weapon holstered and never changes. The
-// player's graph has no drawn or holstered state, only the transient
-// bIsEquipping and bIsUnequipping.
+// The weapon test does not come from the graph, which has no drawn or holstered
+// state: bAimActive was tried as one and reads 1 with the weapon away. It comes
+// from the ActorState bitfield instead, where the value was measured.
 
 // An allowlist inverts the failure mode: a name that goes missing after a game
 // update stops the mod instead of letting it run somewhere it breaks. That is
@@ -37,10 +36,14 @@ static bool reads(void *holder, void *name, int32_t expected)
     return value == expected;
 }
 
-bool locomotion_allowed(void *holder)
+bool locomotion_allowed(void *player)
 {
     if (!g_locomotion_var) g_locomotion_var = intern_string("iSyncIdleLocomotion");
     if (!g_sprint_var) g_sprint_var = intern_string("iSyncSprintState");
+
+    if (is_weapon_drawn(player)) return false;
+
+    void *holder = holder_of(player);
 
     // Ladders, zero g and furniture are not tested for. They do not need to be:
     // whatever they set iSyncIdleLocomotion to, it is not the on foot value, so

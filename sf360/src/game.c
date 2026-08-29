@@ -93,3 +93,10 @@ bool is_sitting(void *refr)
     get_actor_state(refr, &first, &second);
     return ((second >> SIT_STATE_SHIFT) & SIT_STATE_MASK) != SIT_STATE_STANDING;
 }
+
+bool is_weapon_drawn(void *refr)
+{
+    uint32_t first = 0, second = 0;
+    get_actor_state(refr, &first, &second);
+    return (second & WEAPON_STATE_MASK) != WEAPON_SHEATHED;
+}

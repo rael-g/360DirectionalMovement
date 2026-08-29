@@ -40,6 +40,15 @@
 #define SIT_STATE_MASK     0x3u
 #define SIT_STATE_STANDING 0u
 
+// The weapon state shares the second word, in its low three bits. Measured by
+// logging the raw words across four draw and holster cycles: the field walked
+// 0, 2, 3, 5 and back to 0 every time, which is the sheathed, drawing, drawn,
+// sheathing progression. Only sheathed is treated as weapon away, so the two
+// transitional values count as drawn rather than flickering the mod on midway
+// through the animation.
+#define WEAPON_STATE_MASK  0x7u
+#define WEAPON_SHEATHED    0u
+
 // Addresses below this are never valid user space pointers on Win64.
 #define MIN_VALID_POINTER 0x10000
 
@@ -66,6 +75,9 @@ void  get_planar_position(void *refr, float *x, float *y);
 
 // True from the first frame of sitting down until the actor stands up again.
 bool is_sitting(void *refr);
+
+// True from the first frame of drawing until the weapon is fully put away.
+bool is_weapon_drawn(void *refr);
 
 // The raw pair behind is_sitting, for the one log line that records it.
 void get_actor_state(void *refr, uint32_t *first, uint32_t *second);

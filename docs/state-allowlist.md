@@ -41,16 +41,32 @@ the mod outright.
 
 There is no drawn or holstered state in the player's graph. Everything the
 table declares on the subject is transient: `bIsEquipping`, `bIsUnequipping`,
-`UnequipInterruptable`. A weapon gate needs a signal from somewhere other than
-the animation graph.
+`UnequipInterruptable`.
+
+It is in `ActorState` instead, in the low three bits of the second word, beside
+the sit state this plugin already reads. Logged raw across four draw and
+holster cycles, the field walked the same path every time:
+
+    0 sheathed -> 2 drawing -> 3 drawn -> 5 sheathing -> 0 sheathed
+
+Only 0 counts as weapon away, so the mod stands down from the first frame of
+the draw rather than switching back on partway through the animation.
 
 ## The rule
 
     iSyncIdleLocomotion == 1 && iSyncSprintState == 0
 
-Walking, jogging and jumping. Ladders, zero g and furniture are not named
-anywhere in it, and do not need to be: they are excluded by not being the on
-foot value. Jumping is admitted the same way, by not being mentioned.
+plus a weapon that is sheathed. Walking, jogging and jumping.
+
+Ladders were expected to fall out of this by not being the on foot value, and
+they do not: with the allowlist active, climbing is still broken. Whatever
+`iSyncIdleLocomotion` means, it is not "on foot locomotion" in the sense
+assumed here, and it does not separate a ladder from a walk. Zero g is
+untested and now less likely to be excluded, not more.
+
+The claim that unknown states are safe by default is therefore unproven. It
+holds for sitting and sprinting, which are tested against directly, and failed
+its first real test on ladders.
 
 A failed read counts as not allowed, so a name that disappears in a game update
 stops the mod rather than letting it run somewhere it breaks.

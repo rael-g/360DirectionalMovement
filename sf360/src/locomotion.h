@@ -2,6 +2,6 @@
 
 #include <stdbool.h>
 
-// True only in the on foot states the mod is meant to act in: walking and
-// jogging. Everything else, known or not, reads as false.
-bool locomotion_allowed(void *holder);
+// True only in the states the mod is meant to act in: walking, jogging and
+// jumping, with the weapon put away. Everything else reads as false.
+bool locomotion_allowed(void *player);

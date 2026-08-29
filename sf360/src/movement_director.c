@@ -208,7 +208,7 @@ void movement_director_update(void)
     // Walking and jogging, and nothing else. Above the sitting veto because it
     // already excludes sitting: the veto stays only because it is proven, and
     // costs one bitfield read.
-    if (g_config.state_allowlist && !locomotion_allowed(holder)) {
+    if (g_config.state_allowlist && !locomotion_allowed(player)) {
         end_movement();
         return;
     }
