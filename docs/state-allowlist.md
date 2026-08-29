@@ -15,9 +15,12 @@ Read as unavailable throughout, despite being declared in the table:
 Present but never leaving zero, through sprints and jumps both: `iState`,
 `bIsInAir`.
 
-This is the `bIsFirstPerson` failure in another shape. A wrong name reads as a
-state that is simply never entered, and nothing distinguishes the two without a
-probe that reports unavailability apart from zero.
+Availability is not fixed, which took a full sweep to discover. The ladder
+variables were called absent on the strength of reading unavailable while the
+player stood in a city, and they are readable the moment a ladder is being
+climbed: a variable exists only while the subsystem that declares it is loaded.
+So unavailable means "not right now" as often as it means "wrong name", and the
+earlier conclusion that these names were wrong was itself wrong.
 
 ## Carrying signal
 

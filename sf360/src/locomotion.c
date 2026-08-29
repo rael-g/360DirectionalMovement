@@ -17,9 +17,11 @@
 // statement about the state rather than a comparison against a bare number.
 #define LOCOMOTION_ON_FOOT 1
 #define SPRINT_INACTIVE    0
+#define LADDER_INACTIVE    0
 
 static void *g_locomotion_var = NULL;
 static void *g_sprint_var = NULL;
+static void *g_ladder_var = NULL;
 
 // The weapon test does not come from the graph, which has no drawn or holstered
 // state: bAimActive was tried as one and reads 1 with the weapon away. It comes
@@ -40,6 +42,7 @@ bool locomotion_allowed(void *player)
 {
     if (!g_locomotion_var) g_locomotion_var = intern_string("iSyncIdleLocomotion");
     if (!g_sprint_var) g_sprint_var = intern_string("iSyncSprintState");
+    if (!g_ladder_var) g_ladder_var = intern_string("iLadderClimbState");
 
     if (is_weapon_drawn(player)) return false;
 
@@ -52,5 +55,15 @@ bool locomotion_allowed(void *player)
 
     // Sprinting is on foot too, so it has to be subtracted back out: its turn
     // is the one users describe as too snappy.
-    return reads(holder, g_sprint_var, SPRINT_INACTIVE);
+    if (!reads(holder, g_sprint_var, SPRINT_INACTIVE)) return false;
+
+    // A ladder keeps iSyncIdleLocomotion at the on foot value, so it has to be
+    // named. iLadderClimbState is readable only while the ladder subsystem is
+    // loaded, which is why earlier probes reported it as absent: a failed read
+    // here means no ladder, not a wrong name.
+    int32_t climb = LADDER_INACTIVE;
+    if (read_graph_int(holder, g_ladder_var, &climb) && climb != LADDER_INACTIVE)
+        return false;
+
+    return true;
 }
