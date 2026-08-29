@@ -9,7 +9,10 @@ struct config
     bool  hook_post;           // also write from PostUpdate (slot 0x16)
     bool  recapture_on_settle; // recapture the offset once heading is stable
     bool  recapture_on_switch; // recapture when the player changes direction
-    float max_step;            // radians per graph update; 0 means snap
+    float turn_rate;           // degrees per second the body may turn at most;
+                               // 0 means no limit
+    float turn_smoothing;      // roughly the seconds a turn takes to settle;
+                               // 0 removes the easing at both ends
     float min_speed;           // Speed above which the actor counts as moving
     bool  yield_when_sitting;  // leave the body alone while sitting or sleeping
     int   toggle_key;          // virtual key code that switches the mod on and

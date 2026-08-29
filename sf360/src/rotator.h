@@ -23,6 +23,14 @@ void rotator_reset(float current_angle);
 // Times the hook has fired, used to relate log entries to graph updates.
 long rotator_hook_calls(void);
 
+// Seconds between the last two steps. Every step is scaled by this, so reading
+// it back is the only way to tell a slow turn from a short frame.
+float rotator_last_dt(void);
+
+// The angle the rotator last commanded, as opposed to the one the actor is
+// carrying. The two differing means something wrote the angle after we did.
+float rotator_driven_angle(void);
+
 // True when the hooks could not be installed and the caller has to write the
 // angle itself.
 bool rotator_failed(void);

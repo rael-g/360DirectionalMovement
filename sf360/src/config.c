@@ -10,7 +10,12 @@ struct config g_config = {
     .hook_post = true,
     .recapture_on_settle = true,
     .recapture_on_switch = true,
-    .max_step = 0.5f,
+    // 0.5 radians per hook call, which is what this was until 0.2.1, is around
+    // 1700 degrees a second at 60 fps: a cap that high never engaged, so the
+    // body was snapping to the camera. These two are in real time instead, so
+    // the turn looks the same on any machine.
+    .turn_rate = 540.0f,
+    .turn_smoothing = 0.1f,
     .min_speed = 0.5f,
     .yield_when_sitting = true,
     // F11. F5 and F9 are the game's quicksave and quickload, and F12 is the
@@ -41,7 +46,8 @@ void config_load(void)
         if (!strcmp(key, "hookPost")) g_config.hook_post = on;
         else if (!strcmp(key, "recaptureOnSettle")) g_config.recapture_on_settle = on;
         else if (!strcmp(key, "recaptureOnSwitch")) g_config.recapture_on_switch = on;
-        else if (!strcmp(key, "maxStep")) g_config.max_step = value;
+        else if (!strcmp(key, "turnRate")) g_config.turn_rate = value;
+        else if (!strcmp(key, "turnSmoothing")) g_config.turn_smoothing = value;
         else if (!strcmp(key, "minSpeed")) g_config.min_speed = value;
         else if (!strcmp(key, "yieldWhenSitting")) g_config.yield_when_sitting = on;
         // A virtual key code, not a flag, so the whole value is kept.
