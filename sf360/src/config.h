@@ -16,6 +16,8 @@ struct config
                                // off in play; 0 removes the shortcut
     bool  probe_states;        // log the graph variables the allowlist is being
                                // built from; off, it is a diagnostic
+    bool  state_allowlist;     // act only in the on foot states known to be
+                               // safe, instead of everywhere but the vetoes
 };
 
 extern struct config g_config;

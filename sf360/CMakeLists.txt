@@ -3,7 +3,7 @@ project(sf360 VERSION 0.2.0 LANGUAGES C CXX)
 
 # CMake versions are numeric only, so the pre-release suffix is carried apart.
 # Empty on a final release.
-set(SF360_PRERELEASE "-rc4")
+set(SF360_PRERELEASE "-rc5")
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -22,6 +22,7 @@ add_library(sf360 SHARED
     src/diagnostics.c
     src/game.c
     src/layout_check.c
+    src/locomotion.c
     src/log.c
     src/movement_director.c
     src/paths.c

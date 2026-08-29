@@ -4,6 +4,7 @@
 #include "diagnostics.h"
 #include "game.h"
 #include "layout_check.h"
+#include "locomotion.h"
 #include "log.h"
 #include "probe.h"
 #include "rotator.h"
@@ -199,6 +200,14 @@ void movement_director_update(void)
     // The hooks stay installed and go inert on the cleared target, which avoids
     // restoring vtable slots that another plugin may have swapped since.
     if (!toggle_enabled()) {
+        end_movement();
+        return;
+    }
+
+    // Walking and jogging, and nothing else. Above the sitting veto because it
+    // already excludes sitting: the veto stays only because it is proven, and
+    // costs one bitfield read.
+    if (g_config.state_allowlist && !locomotion_allowed(holder)) {
         end_movement();
         return;
     }
