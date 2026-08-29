@@ -8,23 +8,15 @@
 
 ### Changed
 
-- The body is turned only while walking, jogging and jumping with the weapon
-  put away. Sprinting, ladders, zero g, sitting and a drawn weapon are left to
-  the game. This is how the entries below stop misbehaving: the mod stands down
-  in those situations rather than handling them.
+- The body turns only while walking, jogging and jumping with the weapon away
 
 ### Fixed
 
-- Climbing a ladder works again. 0.1.x turned the body during the climb, which
-  could leave the character unable to get off at a middle floor.
-- Zero g works again. 0.1.x spun the character on the spot.
-- A drawn weapon no longer leaves the body pointing away from the camera, which
-  made aiming while moving backwards impossible to shoot from.
+- Ladders, zero g and a drawn weapon, by leaving all three to the game
 
 ### Known issues
 
-- Turning is abrupt, most noticeably with keyboard and mouse. Unchanged in this
-  release.
+- Turning is abrupt, most noticeably with keyboard and mouse
 
 ## 0.1.1
 
