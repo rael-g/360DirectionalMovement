@@ -40,8 +40,13 @@ static bool  g_moving = false;
 static bool  g_settled = false;
 static float g_offset = 0.0f;
 static float g_previous_heading = 0.0f;
-static float g_settled_direction = 0.0f;
 static float g_last_direction = NO_DIRECTION;
+
+// Octant the movement direction was in when the offset was last taken. A change
+// of octant is what separates the player asking for a new direction from the
+// drift our own rotation feeds back into the reading.
+#define NO_OCTANT (-1)
+static int g_last_octant = NO_OCTANT;
 
 static float g_last_x = 0.0f, g_last_y = 0.0f;
 static float g_travel_x = 0.0f, g_travel_y = 0.0f;
@@ -104,10 +109,12 @@ static void end_movement(void)
 // The only reading of `Direction` taken as absolute truth. Afterwards it is
 // contaminated: the reported direction rotates with the body, so feeding it
 // back would have positive gain.
-static void begin_movement(float angle, float relative, float camera_yaw)
+static void begin_movement(float angle, float relative, float camera_yaw,
+                           float direction)
 {
     g_moving = true;
     g_settled = false;
+    g_last_octant = octant_of(direction);
     g_offset = wrap_signed((angle + relative) - camera_yaw);
     g_previous_heading = angle + relative;
     rotator_reset(angle);
@@ -124,10 +131,17 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
     // has not turned yet, so the heading still describes intent rather than our
     // own rotation. Deferring to the settle test instead would never capture
     // while the player keeps turning, because the heading never stops moving.
-    if (g_settled && g_config.recapture_on_switch) {
-        if (octant_of(direction) != octant_of(g_settled_direction)) {
+    // Not gated on having settled. The game blends `Direction` towards a new
+    // input an eighth of a turn at a time, so a quick change of direction is a
+    // sweep across several samples and the heading does not hold still for any
+    // of them. Waiting for it to settle meant that during exactly the movement
+    // that needs the most correction, the offset was never recaptured at all
+    // and the body held its opening direction until the player stopped.
+    if (g_config.recapture_on_switch) {
+        const int octant = octant_of(direction);
+        if (octant != g_last_octant) {
             g_offset = wrap_signed(heading - camera_yaw);
-            g_settled_direction = direction;
+            g_last_octant = octant;
             g_previous_heading = heading;
             return;
         }
@@ -140,7 +154,6 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
         if (fabsf(wrap_signed(heading - g_previous_heading)) < STABLE_HEADING) {
             g_offset = wrap_signed(heading - camera_yaw);
             g_settled = true;
-            g_settled_direction = direction;
         }
         g_previous_heading = heading;
     }
@@ -246,7 +259,7 @@ void movement_director_update(void)
 
     if (fresh_sample) {
         const bool starting = !g_moving;
-        if (starting) begin_movement(angle, relative, camera_yaw);
+        if (starting) begin_movement(angle, relative, camera_yaw, direction);
         else maintain_offset(direction, angle + relative, camera_yaw);
 
         const struct diagnostic_sample sample = {
