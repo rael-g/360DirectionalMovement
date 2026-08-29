@@ -33,7 +33,7 @@ Measured on a 45 degree turn, degrees per graph update:
 Peak was 424 degrees a second at 0.10 and about 180 at 0.18. `turnRate` was 540
 in both, so it never engaged in either. Tuning it was two wasted rounds.
 
-## The snap at the start of a movement is load bearing
+## The snap at the start of a movement
 
 `rotator_reset` sends the first step of a movement straight to the target
 instead of easing it. That was written believing the target equalled the body
@@ -41,19 +41,19 @@ angle at that moment, so the snap covered nothing. It does not: the target is
 the new heading, which can be half a turn away, and the log shows single sample
 jumps of 70 and 180 degrees.
 
-Removing it looked correct and was worse in play. The body ducks mid turn
-instead of braking and pivoting.
+It was removed, and the build without it showed a duck partway through a half
+turn. That looked like a clean result and was not one: the same duck was then
+found in the build before the change. The snap has nothing to do with it. The
+removal was reverted anyway, because nothing in play or in the log distinguished
+the two and every shipped version has snapped.
 
-The reason is the whole approach. We rotate by writing the actor's angle, which
-tells the animation graph nothing, so the legs keep running the previous cycle
-while the body turns underneath them. When the game rotates the actor itself it
-drives the animation with it, which is where the brake and pivot come from. An
-instant turn gives the mismatch no time to appear on screen. Easing a half turn
-over a third of a second puts it on display.
-
-So the snap is not a shortcut to clean up later. It is hiding the ceiling of
-writing the angle directly, and it stays until the rotation goes through
-whatever path the game uses on itself.
+The duck itself is open. The one thing worth writing down is the shape of the
+suspicion: we rotate by writing the actor's angle, which tells the animation
+graph nothing, so the legs keep running the previous cycle while the body turns
+underneath them. When the game rotates the actor itself it drives the animation
+with it, which is where the brake and pivot come from. That would explain a duck
+without needing the snap to be involved. It is a hypothesis, and the last one
+about this cost a round of testing on a wrong cause.
 
 ## What the log carries
 

@@ -21,14 +21,14 @@ static float g_target = 0.0f;
 // rate, matching how fast the game turns the body on its own.
 static float g_current = 0.0f;
 
-// The first step of a movement goes straight to the target instead of being
-// eased. That is not a shortcut, it is load bearing, and taking it out proved
-// it: we rotate the body by writing its angle, which tells the animation graph
-// nothing, so the legs keep running the old cycle while the body turns under
-// them. An instant turn gives that mismatch no time to show. Easing a half turn
-// over a third of a second puts it on screen, and it reads as the character
-// ducking mid turn instead of braking and pivoting the way the game does when
-// it rotates the actor itself.
+// The first step of a movement goes straight to the target rather than being
+// eased, and the target there is the new heading, which can be half a turn from
+// where the body is pointing. So this is a visible instant flip, not the no op
+// it was originally written as.
+//
+// It was taken out and put back. Easing it instead changes nothing either way
+// that play or the log could tell apart, and the shipped versions have always
+// snapped, so it stays until there is a reason to prefer the other one.
 static bool  g_snap_next = false;
 
 // Radians per second. Kept between calls because it is what makes the body
@@ -37,15 +37,25 @@ static bool  g_snap_next = false;
 // abrupt once the arrival had been smoothed.
 static float g_velocity = 0.0f;
 
-// Turns the configured settle time into the spring frequency that settles in
-// about that long without overshooting.
-#define CRITICAL_DAMPING_GAIN 2.0f
+// Converts the configured settle time into the spring's frequency. A spring at
+// this frequency covers most of the arc within the time asked for.
+#define SETTLE_TIME_TO_FREQUENCY 2.0f
+
+// The drag coefficient that makes the spring critically damped, meaning it
+// arrives without swinging past. It belongs to the equation rather than to
+// taste, so it is not a setting.
+#define CRITICAL_DAMPING 2.0f
+
+// Above this, the explicit integration below stops being stable and the body
+// would oscillate. Reached only when the frame is long relative to the settle
+// time, and handled by slowing the response rather than letting it ring.
+#define STABLE_FREQUENCY_TIMES_FRAME 1.0f
 
 static volatile long g_calls = 0;
 
-// A frame long enough to have been a load screen or an alt tab. Stepping by it
-// would close the whole arc at once, which is the snap this module exists to
-// avoid, so it is treated as one ordinary frame instead.
+// A frame this long was a load screen or an alt tab, not a frame. Scaling a
+// step by it would cover the whole arc at once, so it is charged as one
+// ordinary frame instead.
 #define LONGEST_FRAME 0.1f
 
 // The graph update carries no timestep this code can reach, and the hook does
@@ -79,9 +89,9 @@ static float elapsed_seconds(void)
     return dt < LONGEST_FRAME ? dt : LONGEST_FRAME;
 }
 
-// Chases the target along the shorter arc and returns the angle to write.
 static float g_last_dt = 0.0f;
 
+// Chases the target along the shorter arc and returns the angle to write.
 static float step_toward_target(void)
 {
     const float dt = elapsed_seconds();
@@ -102,16 +112,14 @@ static float step_toward_target(void)
     const float delta = wrap_signed(g_target - g_current);
 
     if (g_config.turn_smoothing > 0.0f) {
-        // Critically damped: the pull towards the target is opposed by a drag
-        // on the current speed, tuned so the body arrives without swinging
-        // past. Both ends of the turn are eased, which is the part a step
+        // A pull towards the target opposed by a drag on the current speed.
+        // Both ends of the turn come out eased, which is the part a step
         // proportional to the remaining arc cannot do.
-        float omega = CRITICAL_DAMPING_GAIN / g_config.turn_smoothing;
-        // Integrating a step this way is only stable while omega times the
-        // frame stays under one. On a long frame the response is slowed rather
-        // than allowed to oscillate.
-        if (omega * dt > 1.0f) omega = 1.0f / dt;
-        g_velocity += (omega * omega * delta - 2.0f * omega * g_velocity) * dt;
+        float omega = SETTLE_TIME_TO_FREQUENCY / g_config.turn_smoothing;
+        if (omega * dt > STABLE_FREQUENCY_TIMES_FRAME)
+            omega = STABLE_FREQUENCY_TIMES_FRAME / dt;
+        g_velocity += (omega * omega * delta
+                       - CRITICAL_DAMPING * omega * g_velocity) * dt;
     } else {
         g_velocity = delta / dt;
     }
@@ -119,7 +127,7 @@ static float step_toward_target(void)
     // The easing alone still swings fast when the arc is wide, so a ceiling on
     // the speed keeps a half turn from happening in a couple of frames.
     if (g_config.turn_rate > 0.0f) {
-        const float cap = g_config.turn_rate / SF360_RAD_TO_DEG;
+        const float cap = g_config.turn_rate * SF360_DEG_TO_RAD;
         if (g_velocity > cap) g_velocity = cap;
         if (g_velocity < -cap) g_velocity = -cap;
     }
