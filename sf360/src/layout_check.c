@@ -31,7 +31,7 @@ bool validate_layout(void *player, void *speed_var, void *direction_var,
     }
 
     static const size_t slots[] = {
-        SLOT_FLOAT, SLOT_BOOL, SLOT_PRE_UPDATE, SLOT_POST_UPDATE
+        SLOT_FLOAT, SLOT_INT, SLOT_BOOL, SLOT_PRE_UPDATE, SLOT_POST_UPDATE
     };
     for (size_t i = 0; i < sizeof slots / sizeof *slots; ++i) {
         if (!inside_module(vtable[slots[i]])) {
@@ -66,6 +66,19 @@ bool validate_layout(void *player, void *speed_var, void *direction_var,
     get_planar_position(player, &x, &y);
     if (!isfinite(x) || !isfinite(y)) {
         report_failure(report, "position at +0x%X is not finite", LOCATION_OFFSET);
+        return false;
+    }
+
+    // The actor state offset was found by dumping the object, and the first
+    // address tried held a vtable pointer instead. That mistake reads as a sit
+    // state that never clears, which silently costs every rotation, so it is
+    // worth one explicit test.
+    const void *const *state = (const void *const *)((char *)player
+                                                     + ACTOR_STATE_OFFSET);
+    if (inside_module(*state)) {
+        report_failure(report,
+                       "actor state at +0x%X holds %p, a pointer into the game",
+                       ACTOR_STATE_OFFSET, *state);
         return false;
     }
 
