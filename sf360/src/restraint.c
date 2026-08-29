@@ -27,12 +27,13 @@
 #define SIT_SHIFT 11
 #define SIT_MASK  0x3u
 
-// A wrong guess must not cost the mod. If the gate holds while the player is
-// plainly moving for this many consecutive updates, roughly a few seconds, the
-// hypothesis is declared wrong and never blocks again for the rest of the
-// session.
-#define WATCHDOG_UPDATES 600
-
+// There is deliberately no watchdog here any more. One was added to make a
+// guessed signal safe to ship, on the premise that blocking for thousands of
+// consecutive updates while the graph reports speed means the signal is wrong.
+// That premise is false: sitting reports speed the entire time the character is
+// seated, so a correct signal blocks indefinitely, which is exactly what the
+// watchdog was built to punish. It fired a few seconds into every sit and
+// undid the fix. The escape hatch is yieldWhenHeld=0 in the ini instead.
 #define MAX_REPORTS 120
 
 // Names from meshes/animtextdata/tables/anim_variables.xtbl, the game's own
@@ -51,8 +52,6 @@ static void *g_code_driven = NULL;
 static uint64_t g_previous = 0;
 static bool     g_have_previous = false;
 static int      g_reports = 0;
-static int      g_held = 0;
-static bool     g_abandoned = false;
 
 static bool code_driven(void *holder, bool *out)
 {
@@ -94,32 +93,17 @@ void restraint_observe(void *player, float speed)
     }
 }
 
-// Loading a save must not inherit a watchdog that fired an hour ago. The flag
-// used to survive every reload, so one false positive cost the rest of the
-// session and could not be undone from inside the game.
+// A reload starts the log budget over, so a session spent loading saves still
+// records the first sits after each one.
 void restraint_reset(void)
 {
-    g_held = 0;
-    g_abandoned = false;
+    g_reports = 0;
+    g_have_previous = false;
 }
 
 bool restraint_blocks(void *player)
 {
-    if (g_abandoned) return false;
-
     const uint32_t *words = (const uint32_t *)((const char *)player
                                                + ACTOR_STATE_OFFSET);
-    if (((words[1] >> SIT_SHIFT) & SIT_MASK) == 0) {
-        g_held = 0;
-        return false;
-    }
-
-    if (++g_held > WATCHDOG_UPDATES) {
-        log_line("restraint: held for %d moving updates, actorState2 bits 11-12"
-                 " are not the sit state; yielding disabled until the next load",
-                 g_held);
-        g_abandoned = true;
-        return false;
-    }
-    return true;
+    return ((words[1] >> SIT_SHIFT) & SIT_MASK) != 0;
 }
