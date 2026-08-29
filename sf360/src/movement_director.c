@@ -192,6 +192,7 @@ void movement_director_update(void)
     // record everything except what is being looked for.
     probe_update(holder);
     probe_actor_state(player);
+    probe_scan(holder);
 
     // Switched off from the keyboard. Below accumulate_travel for the same
     // reason as the sitting gate: the position has to stay current so whatever

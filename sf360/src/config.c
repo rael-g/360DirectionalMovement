@@ -17,6 +17,7 @@ struct config g_config = {
     // Steam screenshot, so this is the nearest key that is free by default.
     .toggle_key = VK_F11,
     .probe_states = false,
+    .scan_states = false,
     .state_allowlist = true,
 };
 
@@ -46,6 +47,7 @@ void config_load(void)
         // A virtual key code, not a flag, so the whole value is kept.
         else if (!strcmp(key, "toggleKey")) g_config.toggle_key = (int)value;
         else if (!strcmp(key, "probeStates")) g_config.probe_states = on;
+        else if (!strcmp(key, "scanStates")) g_config.scan_states = on;
         else if (!strcmp(key, "stateAllowlist")) g_config.state_allowlist = on;
         // Silently ignoring a key means editing it appears to do nothing, and
         // the reader concludes the behaviour it names is irrelevant.
