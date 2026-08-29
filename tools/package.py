@@ -41,7 +41,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("version")
-    parser.add_argument("--dll", default=os.path.join(ROOT, "sf360", "build", "sf360.dll"))
+    parser.add_argument("--dll", default=os.path.join(ROOT, "build", "sf360.dll"))
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
 
