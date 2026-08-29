@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
-project(sf360 VERSION 0.1.0 LANGUAGES C CXX)
+project(sf360 VERSION 0.1.1 LANGUAGES C CXX)
+
+# CMake versions are numeric only, so the pre-release suffix is carried apart.
+# Empty on a final release.
+set(SF360_PRERELEASE "-rc1")
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -28,7 +32,7 @@ add_library(sf360 SHARED
 target_include_directories(sf360 PRIVATE
     ${SFSE_SRC}/sfse ${SFSE_SRC}/sfse_common ${SFSE_SRC})
 target_link_libraries(sf360 PRIVATE ole32.lib shell32.lib)
-target_compile_definitions(sf360 PRIVATE SF360_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(sf360 PRIVATE SF360_VERSION="${PROJECT_VERSION}${SF360_PRERELEASE}")
 
 # Static CRT: a dynamically linked one would make the plugin depend on the
 # Visual C++ redistributable, and a machine without it fails to load the DLL
