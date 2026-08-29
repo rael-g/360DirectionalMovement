@@ -183,6 +183,8 @@ void movement_director_update(void)
     int32_t first_person = 0;
     read_graph_int(holder, g_first_person_var, &first_person);
 
+    restraint_observe(player, speed);
+
     if (speed <= g_config.min_speed || first_person) {
         end_movement();
         return;

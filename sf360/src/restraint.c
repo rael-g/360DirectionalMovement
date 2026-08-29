@@ -10,32 +10,30 @@
 // trusting the CommonLibSF offset, which is eight bytes off on this build.
 #define ACTOR_STATE_OFFSET 0xF8
 
-// The Skyrim bit assignment does not survive here. Under it, walking, running
-// and sprinting live at bits 6 to 8 and sitSleepState at 14 to 17, yet the word
-// reads 0x30000000 and 0x10000000 in play, with everything below bit 28 clear
-// the whole time. Whatever the fields are, they are packed at the top.
+// The low byte holds four two bit fields, each reading 1 or 2 and never 0 or 3,
+// which is how this game spells the movement flags Skyrim kept as single bits.
+// They change on every step and would fill the log budget before anything
+// interesting happened, so they are masked out of the change test.
+#define MOVEMENT_BITS 0xFFu
+
+// Only rotate while the graph says the rotation is code driven. The name is the
+// game's own, from anim_variables.xtbl, and it reads 1 throughout normal
+// walking, so a furniture animation taking the wheel should read 0.
 //
-// So the guess is the narrowest one the evidence supports: the top nibble is a
-// small enumeration that is non zero while the game owns the body. It is only a
-// guess, and the watchdog below is what makes it safe to ship.
-#define STATE_SHIFT 28
-#define STATE_MASK  0xFu
+// This replaces a guess at the actor state bits: the top nibble was 3 for the
+// whole of a session, moving or not, so it is not the sit state.
+#define YIELD_WHEN_NOT_CODE_DRIVEN 1
 
 // A wrong guess must not cost the mod. If the gate holds while the player is
 // plainly moving for this many consecutive updates, roughly a few seconds, the
 // hypothesis is declared wrong and never blocks again for the rest of the
-// session. The previous candidate disabled the plugin for a whole playtest, and
-// that must not be repeatable.
+// session.
 #define WATCHDOG_UPDATES 600
 
-// Every change of the pair is logged, not just the high bits: the low ones have
-// been clear in every sample so far, so there is nothing to drown out, and if
-// sitting turns out to move them that is exactly what needs to be seen.
 #define MAX_REPORTS 120
 
 // Names from meshes/animtextdata/tables/anim_variables.xtbl, the game's own
-// declaration of every graph variable. Logged beside the first few state
-// changes so a replacement signal is already measured if the nibble fails.
+// declaration of every graph variable.
 static const char *const WITNESS_INT[] = {
     "bDisableFurnitureHeadtrack",
     "bIsFurnitureExit",
@@ -43,7 +41,6 @@ static const char *const WITNESS_INT[] = {
 };
 
 #define WITNESS_INT_COUNT (sizeof WITNESS_INT / sizeof WITNESS_INT[0])
-#define MAX_WITNESS_REPORTS 12
 
 static void *g_witness[WITNESS_INT_COUNT];
 static void *g_code_driven = NULL;
@@ -54,51 +51,61 @@ static int      g_reports = 0;
 static int      g_held = 0;
 static bool     g_abandoned = false;
 
-static void report(void *player, uint32_t state1, uint32_t state2)
+static bool code_driven(void *holder, bool *out)
 {
-    log_line("restraint: actorState1=0x%08X actorState2=0x%08X top=%u",
-             state1, state2, (state1 >> STATE_SHIFT) & STATE_MASK);
+    if (!g_code_driven) g_code_driven = intern_string("IsUsingCodeDrivenRotation");
+    return g_code_driven && read_graph_bool(holder, g_code_driven, out);
+}
 
-    if (g_reports >= MAX_WITNESS_REPORTS) return;
+void restraint_observe(void *player, float speed)
+{
+    const uint32_t *words = (const uint32_t *)((const char *)player
+                                               + ACTOR_STATE_OFFSET);
+    const uint64_t pair = ((uint64_t)words[1] << 32) | (words[0] & ~MOVEMENT_BITS);
+
+    if (g_reports >= MAX_REPORTS || (g_have_previous && pair == g_previous)) {
+        g_previous = pair;
+        g_have_previous = true;
+        return;
+    }
+    g_previous = pair;
+    g_have_previous = true;
+    ++g_reports;
 
     void *holder = holder_of(player);
 
-    if (!g_code_driven) g_code_driven = intern_string("IsUsingCodeDrivenRotation");
+    // Speed is logged here because the gate sits behind the speed test. If
+    // sitting turns out to happen below the threshold, the gate can never see
+    // it, and only this line would say so.
     bool driven = false;
-    if (g_code_driven && read_graph_bool(holder, g_code_driven, &driven))
-        log_line("  IsUsingCodeDrivenRotation=%d", driven);
+    const bool has_driven = code_driven(holder, &driven);
+    log_line("restraint: actorState1=0x%08X actorState2=0x%08X speed=%.2f"
+             " codeDriven=%s",
+             words[0], words[1], speed, has_driven ? (driven ? "1" : "0") : "?");
 
     for (size_t i = 0; i < WITNESS_INT_COUNT; ++i) {
         if (!g_witness[i]) g_witness[i] = intern_string(WITNESS_INT[i]);
         int32_t value = 0;
-        if (g_witness[i] && read_graph_int(holder, g_witness[i], &value))
+        if (g_witness[i] && read_graph_int(holder, g_witness[i], &value) && value)
             log_line("  %s=%d", WITNESS_INT[i], value);
     }
 }
 
 bool restraint_blocks(void *player)
 {
-    const uint32_t *words = (const uint32_t *)((const char *)player
-                                               + ACTOR_STATE_OFFSET);
-    const uint64_t pair = ((uint64_t)words[1] << 32) | words[0];
-
-    if (g_reports < MAX_REPORTS && (!g_have_previous || pair != g_previous)) {
-        report(player, words[0], words[1]);
-        ++g_reports;
-    }
-    g_previous = pair;
-    g_have_previous = true;
-
     if (g_abandoned) return false;
 
-    if (((words[0] >> STATE_SHIFT) & STATE_MASK) == 0) {
+    bool driven = false;
+    if (!code_driven(holder_of(player), &driven)) return false;
+
+    if (driven == YIELD_WHEN_NOT_CODE_DRIVEN) {
         g_held = 0;
         return false;
     }
 
     if (++g_held > WATCHDOG_UPDATES) {
-        log_line("restraint: held for %d moving updates, the top nibble is not"
-                 " the sit state; yielding disabled for this session", g_held);
+        log_line("restraint: held for %d moving updates, IsUsingCodeDrivenRotation"
+                 " is not the signal; yielding disabled for this session", g_held);
         g_abandoned = true;
         return false;
     }
