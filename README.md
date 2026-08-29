@@ -18,7 +18,8 @@ where it still misbehaves: ladders, zero g, sitting down in a cockpit.
 
 To move it elsewhere, put a
 [virtual key code](https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
-in `Data/SFSE/Plugins/sf360.ini`. `0` removes the shortcut.
+in `Documents/My Games/Starfield/SFSE/sf360.ini`, the folder the log is written
+to. `0` removes the shortcut.
 
 ```
 toggleKey=122
