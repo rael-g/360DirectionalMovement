@@ -11,6 +11,7 @@ struct config
     bool  recapture_on_switch; // recapture when the player changes direction
     float max_step;            // radians per graph update; 0 means snap
     float min_speed;           // Speed above which the actor counts as moving
+    bool  yield_when_held;     // stop writing while the game owns the rotation
 };
 
 extern struct config g_config;

@@ -4,6 +4,7 @@
 #include "diagnostics.h"
 #include "game.h"
 #include "layout_check.h"
+#include "restraint.h"
 #include "rotator.h"
 
 #include <math.h>
@@ -77,6 +78,7 @@ static bool rebind(void *player)
     g_settled = false;
     g_last_direction = NO_DIRECTION;
     diagnostics_reset();
+    restraint_bind(holder_of(player));
     rotator_install(player);
     return true;
 }
@@ -166,7 +168,18 @@ void movement_director_update(void)
     if (player != g_player && !rebind(player)) return;
 
     void *holder = holder_of(player);
+    // Kept above the restraint gate so the position stays current: coming out of
+    // a chair with a stale sample would charge the whole displacement of the
+    // animation to the first update of the next movement.
     accumulate_travel(player);
+
+    // Sitting down, entering the cockpit, lying down: the game rotates the body
+    // to match the furniture, and our writes fight it all the way in, which is
+    // what leaves the character seated crooked.
+    if (g_config.yield_when_held && restraint_blocks(holder)) {
+        end_movement();
+        return;
+    }
 
     float speed = 0.0f, direction = 0.0f;
     if (!read_graph_float(holder, g_speed_var, &speed)) return;
