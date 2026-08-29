@@ -5,6 +5,7 @@
 #include "game.h"
 #include "layout_check.h"
 #include "log.h"
+#include "probe.h"
 #include "rotator.h"
 #include "toggle.h"
 
@@ -184,6 +185,11 @@ void movement_director_update(void)
     // a chair with a stale sample would charge the whole displacement of the
     // animation to the first update of the next movement.
     accumulate_travel(player);
+
+    // Above every gate, including the toggle: the states it exists to describe
+    // are the ones the mod refuses to run in, so sampling below a gate would
+    // record everything except what is being looked for.
+    probe_update(holder);
 
     // Switched off from the keyboard. Below accumulate_travel for the same
     // reason as the sitting gate: the position has to stay current so whatever

@@ -14,6 +14,8 @@ struct config
     bool  yield_when_sitting;  // leave the body alone while sitting or sleeping
     int   toggle_key;          // virtual key code that switches the mod on and
                                // off in play; 0 removes the shortcut
+    bool  probe_states;        // log the graph variables the allowlist is being
+                               // built from; off, it is a diagnostic
 };
 
 extern struct config g_config;

@@ -16,6 +16,7 @@ struct config g_config = {
     // F11. F5 and F9 are the game's quicksave and quickload, and F12 is the
     // Steam screenshot, so this is the nearest key that is free by default.
     .toggle_key = VK_F11,
+    .probe_states = false,
 };
 
 void config_load(void)
@@ -43,6 +44,7 @@ void config_load(void)
         else if (!strcmp(key, "yieldWhenSitting")) g_config.yield_when_sitting = on;
         // A virtual key code, not a flag, so the whole value is kept.
         else if (!strcmp(key, "toggleKey")) g_config.toggle_key = (int)value;
+        else if (!strcmp(key, "probeStates")) g_config.probe_states = on;
         // Silently ignoring a key means editing it appears to do nothing, and
         // the reader concludes the behaviour it names is irrelevant.
         else log_line("config: ignoring unknown key '%s'", key);
