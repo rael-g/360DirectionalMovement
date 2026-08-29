@@ -82,18 +82,14 @@ void get_actor_state(void *refr, uint32_t *first, uint32_t *second)
     *second = words[1];
 }
 
-// The sit and sleep state occupies bits 11 and 12 of the second word. Measured
-// in play: sitting down walks it through 1, 2 and 3 while the entry animation
+// Measured in play, not taken from the Skyrim layout, which does not hold here:
+// sitting down walks the field through 1, 2 and 3 while the entry animation
 // places the body, holds at 3 for as long as the character stays seated, and
-// returns to 0 on standing up.
-//
-// The Skyrim assignment, a four bit field at 14 to 17 of the *first* word, does
-// not hold here. Under it the walking and running bits would be 6 to 8, and
-// those never move in this game; its low byte carries four two bit fields
-// instead.
-uint32_t get_sit_state(void *refr)
+// returns to standing on getting up. Only the standing value has a verified
+// meaning, so the test is against that one rather than against a named step.
+bool is_sitting(void *refr)
 {
     uint32_t first = 0, second = 0;
     get_actor_state(refr, &first, &second);
-    return (second >> 11) & 0x3u;
+    return ((second >> SIT_STATE_SHIFT) & SIT_STATE_MASK) != SIT_STATE_STANDING;
 }

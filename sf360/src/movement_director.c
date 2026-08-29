@@ -189,7 +189,7 @@ void movement_director_update(void)
     // Tested before speed, not after. The graph reports speed for as long as
     // the character stays seated, so anything behind the speed test would see
     // sitting as ordinary movement.
-    if (g_config.yield_when_sitting && get_sit_state(player) != 0) {
+    if (g_config.yield_when_sitting && is_sitting(player)) {
         if (!g_sit_logged) {
             uint32_t first = 0, second = 0;
             get_actor_state(player, &first, &second);

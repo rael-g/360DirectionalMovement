@@ -33,8 +33,12 @@
 #define ANGLE_Z_OFFSET  (0x80 + 8)
 #define LOCATION_OFFSET (0x80 + 0x0C)
 
-// ActorState's two bitfield words, actorState1 then actorState2.
+// ActorState's two bitfield words, actorState1 then actorState2. The sit and
+// sleep state is a two bit field in the second of them.
 #define ACTOR_STATE_OFFSET 0xF8
+#define SIT_STATE_SHIFT    11
+#define SIT_STATE_MASK     0x3u
+#define SIT_STATE_STANDING 0u
 
 // Addresses below this are never valid user space pointers on Win64.
 #define MIN_VALID_POINTER 0x10000
@@ -60,10 +64,8 @@ float get_angle_z(void *refr);
 void  write_angle_z(void *refr, float radians);
 void  get_planar_position(void *refr, float *x, float *y);
 
-// Zero while the actor is free standing. Sitting down runs it through a four
-// step sequence and it stays non zero until the actor gets up again, so the
-// whole range means "the game is placing the body, not the player".
-uint32_t get_sit_state(void *refr);
+// True from the first frame of sitting down until the actor stands up again.
+bool is_sitting(void *refr);
 
-// The raw pair behind get_sit_state, for the one log line that records it.
+// The raw pair behind is_sitting, for the one log line that records it.
 void get_actor_state(void *refr, uint32_t *first, uint32_t *second);
