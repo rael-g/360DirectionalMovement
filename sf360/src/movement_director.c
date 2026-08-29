@@ -176,14 +176,6 @@ void movement_director_update(void)
     // animation to the first update of the next movement.
     accumulate_travel(player);
 
-    // Sitting down, entering the cockpit, lying down: the game rotates the body
-    // to match the furniture, and our writes fight it all the way in, which is
-    // what leaves the character seated crooked.
-    if (g_config.yield_when_held && restraint_blocks(player)) {
-        end_movement();
-        return;
-    }
-
     float speed = 0.0f, direction = 0.0f;
     if (!read_graph_float(holder, g_speed_var, &speed)) return;
     if (!read_graph_float(holder, g_direction_var, &direction)) return;
@@ -192,6 +184,18 @@ void movement_director_update(void)
     read_graph_int(holder, g_first_person_var, &first_person);
 
     if (speed <= g_config.min_speed || first_person) {
+        end_movement();
+        return;
+    }
+
+    // Sitting down, entering the cockpit, lying down: the game rotates the body
+    // to match the furniture, and our writes fight it all the way in, which is
+    // what leaves the character seated crooked.
+    //
+    // Placed after the speed test on purpose. Standing still needs no yielding,
+    // and keeping the gate on the moving path is what lets its watchdog count
+    // only updates where blocking actually costs something.
+    if (g_config.yield_when_held && restraint_blocks(player)) {
         end_movement();
         return;
     }

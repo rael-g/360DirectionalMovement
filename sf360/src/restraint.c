@@ -5,80 +5,61 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// Actor inherits TESObjectREFR, then MagicTarget, then ActorState. ActorState
-// carries a vtable and then two bitfield words.
-//
-// CommonLibSF puts ActorState at 0x0E8, which would place the first bitfield at
-// 0x0F0. Reading there returned 0x44CBBFB8, the low half of a pointer sitting
-// 0x330 below the player's own vtable, so 0x0F0 is where the subobject starts
-// and the bitfields follow it.
+// ActorState begins at 0x0F0, where its vtable sits, and the two bitfield words
+// follow together at 0x0F8. Located by dumping the neighbourhood rather than by
+// trusting the CommonLibSF offset, which is eight bytes off on this build.
 #define ACTOR_STATE_OFFSET 0xF8
 
-// Bit assignment is the one Bethesda has used since Skyrim: the low bits carry
-// the movement flags, then flyState, then the sit and sleep state.
+// The Skyrim bit assignment does not survive here. Under it, walking, running
+// and sprinting live at bits 6 to 8 and sitSleepState at 14 to 17, yet the word
+// reads 0x30000000 and 0x10000000 in play, with everything below bit 28 clear
+// the whole time. Whatever the fields are, they are packed at the top.
 //
-//   0-3 moving back/forward/right/left   6 walking   7 running   8 sprinting
-//   9 sneaking   10 swimming   11-13 flyState   14-17 sitSleepState
-//
-// sitSleepState is zero only when the actor is free standing. Every other value
-// is a step of sitting down, sitting, or standing up, and the whole range has
-// to be yielded because the crooked angle is set during the entry animation,
-// not once seated.
-#define SIT_SLEEP_SHIFT 14
-#define SIT_SLEEP_MASK  0xFu
+// So the guess is the narrowest one the evidence supports: the top nibble is a
+// small enumeration that is non zero while the game owns the body. It is only a
+// guess, and the watchdog below is what makes it safe to ship.
+#define STATE_SHIFT 28
+#define STATE_MASK  0xFu
 
-// The highest field in the word is around bit 25, so anything set above that is
-// not a state word at all. Reading the wrong address must not leave the plugin
-// blocking forever: a wrong offset should cost the fix, not the whole mod.
-#define IMPLAUSIBLE_SHIFT 26
+// A wrong guess must not cost the mod. If the gate holds while the player is
+// plainly moving for this many consecutive updates, roughly a few seconds, the
+// hypothesis is declared wrong and never blocks again for the rest of the
+// session. The previous candidate disabled the plugin for a whole playtest, and
+// that must not be repeatable.
+#define WATCHDOG_UPDATES 600
 
-// Only bits 11 and up are watched for reporting: the ones below change on every
-// step taken and would bury everything else.
-#define WATCHED_SHIFT 11
-#define MAX_REPORTS   40
+// Every change of the pair is logged, not just the high bits: the low ones have
+// been clear in every sample so far, so there is nothing to drown out, and if
+// sitting turns out to move them that is exactly what needs to be seen.
+#define MAX_REPORTS 120
 
-// Names taken from meshes/animtextdata/tables/anim_variables.xtbl, the game's
-// own declaration of every graph variable. They are logged next to the state
-// word so that if the word is wrong again, the replacement is already measured.
+// Names from meshes/animtextdata/tables/anim_variables.xtbl, the game's own
+// declaration of every graph variable. Logged beside the first few state
+// changes so a replacement signal is already measured if the nibble fails.
 static const char *const WITNESS_INT[] = {
     "bDisableFurnitureHeadtrack",
     "bIsFurnitureExit",
     "DisableAnimationDriven",
-    "bIsFirstPerson",
 };
 
 #define WITNESS_INT_COUNT (sizeof WITNESS_INT / sizeof WITNESS_INT[0])
+#define MAX_WITNESS_REPORTS 12
 
 static void *g_witness[WITNESS_INT_COUNT];
 static void *g_code_driven = NULL;
 
-static uint32_t g_previous = 0;
+static uint64_t g_previous = 0;
 static bool     g_have_previous = false;
 static int      g_reports = 0;
-static bool     g_dumped = false;
+static int      g_held = 0;
+static bool     g_abandoned = false;
 
-// One pass over the neighbourhood, so the state word can be located from the
-// log rather than from another round of guessing. A pointer prints as a pair of
-// halves that read as an address; the state word does not.
-static void dump_window(const void *player)
+static void report(void *player, uint32_t state1, uint32_t state2)
 {
-    for (size_t offset = 0xE0; offset <= 0x110; offset += 8) {
-        const void *const *slot = (const void *const *)((const char *)player + offset);
-        log_line("  +0x%03zX %016llX%s", offset, (unsigned long long)(uintptr_t)*slot,
-                 inside_module(*slot) ? "  <- points into the game" : "");
-    }
-}
+    log_line("restraint: actorState1=0x%08X actorState2=0x%08X top=%u",
+             state1, state2, (state1 >> STATE_SHIFT) & STATE_MASK);
 
-static void report(void *player, uint32_t state, bool trusted)
-{
-    log_line("restraint: actorState1=0x%08X sitSleep=%u fly=%u%s",
-             state, (state >> SIT_SLEEP_SHIFT) & SIT_SLEEP_MASK,
-             (state >> 11) & 0x7u, trusted ? "" : "  (implausible, ignored)");
-
-    if (!g_dumped) {
-        dump_window(player);
-        g_dumped = true;
-    }
+    if (g_reports >= MAX_WITNESS_REPORTS) return;
 
     void *holder = holder_of(player);
 
@@ -97,18 +78,29 @@ static void report(void *player, uint32_t state, bool trusted)
 
 bool restraint_blocks(void *player)
 {
-    const uint32_t state = *(const uint32_t *)((const char *)player
+    const uint32_t *words = (const uint32_t *)((const char *)player
                                                + ACTOR_STATE_OFFSET);
-    const bool trusted = (state >> IMPLAUSIBLE_SHIFT) == 0;
+    const uint64_t pair = ((uint64_t)words[1] << 32) | words[0];
 
-    if (g_reports < MAX_REPORTS
-        && (!g_have_previous
-            || (state >> WATCHED_SHIFT) != (g_previous >> WATCHED_SHIFT))) {
-        report(player, state, trusted);
+    if (g_reports < MAX_REPORTS && (!g_have_previous || pair != g_previous)) {
+        report(player, words[0], words[1]);
         ++g_reports;
     }
-    g_previous = state;
+    g_previous = pair;
     g_have_previous = true;
 
-    return trusted && ((state >> SIT_SLEEP_SHIFT) & SIT_SLEEP_MASK) != 0;
+    if (g_abandoned) return false;
+
+    if (((words[0] >> STATE_SHIFT) & STATE_MASK) == 0) {
+        g_held = 0;
+        return false;
+    }
+
+    if (++g_held > WATCHDOG_UPDATES) {
+        log_line("restraint: held for %d moving updates, the top nibble is not"
+                 " the sit state; yielding disabled for this session", g_held);
+        g_abandoned = true;
+        return false;
+    }
+    return true;
 }
