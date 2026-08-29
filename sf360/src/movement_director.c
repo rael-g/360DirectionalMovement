@@ -4,10 +4,10 @@
 #include "diagnostics.h"
 #include "game.h"
 #include "layout_check.h"
-#include "locomotion.h"
 #include "log.h"
 #include "probe.h"
 #include "rotator.h"
+#include "state_gate.h"
 #include "toggle.h"
 
 #include <math.h>
@@ -47,11 +47,6 @@ static float g_last_x = 0.0f, g_last_y = 0.0f;
 static float g_travel_x = 0.0f, g_travel_y = 0.0f;
 static float g_sampled_x = 0.0f, g_sampled_y = 0.0f;
 
-// The sit state is read from a measured offset, so a game update could move it
-// under us. Recording it once per load costs one line and turns "sitting broke
-// again" into a question the log can answer.
-static bool g_sit_logged = false;
-
 static float read_or_unavailable(void *holder, void *name)
 {
     float v = UNAVAILABLE;
@@ -90,7 +85,7 @@ static bool rebind(void *player)
     g_settled = false;
     g_last_direction = NO_DIRECTION;
     diagnostics_reset();
-    g_sit_logged = false;
+    state_gate_rebound();
     rotator_install(player);
     return true;
 }
@@ -190,14 +185,12 @@ void movement_director_update(void)
     // Above every gate, including the toggle: the states it exists to describe
     // are the ones the mod refuses to run in, so sampling below a gate would
     // record everything except what is being looked for.
-    probe_update(holder);
     probe_actor_state(player);
     probe_scan(holder);
 
-    // Switched off from the keyboard. Below accumulate_travel for the same
-    // reason as the sitting gate: the position has to stay current so whatever
-    // happened while the mod was off is not charged to the first update after
-    // it comes back.
+    // Switched off from the keyboard. Below accumulate_travel so the position
+    // stays current: whatever happened while the mod was off must not be
+    // charged to the first update after it comes back.
     //
     // The hooks stay installed and go inert on the cleared target, which avoids
     // restoring vtable slots that another plugin may have swapped since.
@@ -206,29 +199,10 @@ void movement_director_update(void)
         return;
     }
 
-    // Walking and jogging, and nothing else. Above the sitting veto because it
-    // already excludes sitting: the veto stays only because it is proven, and
-    // costs one bitfield read.
-    if (g_config.state_allowlist && !locomotion_allowed(player)) {
-        end_movement();
-        return;
-    }
-
-    // Sitting down, entering a cockpit, lying down: the game turns the body to
-    // match the furniture, and writing our own angle over it swings the camera
-    // through the animation and leaves the character seated crooked.
-    //
-    // Tested before speed, not after. The graph reports speed for as long as
-    // the character stays seated, so anything behind the speed test would see
-    // sitting as ordinary movement.
-    if (g_config.yield_when_sitting && is_sitting(player)) {
-        if (!g_sit_logged) {
-            uint32_t first = 0, second = 0;
-            get_actor_state(player, &first, &second);
-            log_line("sitting: actorState1=0x%08X actorState2=0x%08X",
-                     first, second);
-            g_sit_logged = true;
-        }
+    // Sitting, ladders, zero g, sprinting and a drawn weapon all leave here.
+    // Above the speed test on purpose: the graph reports speed while seated, so
+    // anything behind that test would read sitting as ordinary movement.
+    if (g_config.state_allowlist && !state_gate_allows(player)) {
         end_movement();
         return;
     }

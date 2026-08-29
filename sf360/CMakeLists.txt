@@ -22,7 +22,7 @@ add_library(sf360 SHARED
     src/diagnostics.c
     src/game.c
     src/layout_check.c
-    src/locomotion.c
+    src/state_gate.c
     src/log.c
     src/movement_director.c
     src/paths.c
