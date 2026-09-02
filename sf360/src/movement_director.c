@@ -13,6 +13,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <windows.h>
 
 // A graph variable that could not be read stays distinguishable from one that
 // legitimately reads zero.
@@ -53,6 +54,36 @@ static int g_last_octant = NO_OCTANT;
 // for.
 static int   g_pending_octant = NO_OCTANT;
 static float g_pending_seconds = 0.0f;
+
+// How long the current movement has been asked for. The rotator's clock cannot
+// serve here: it only advances while there is a target, and the whole point is
+// to measure the stretch before there is one.
+static float g_start_seconds = 0.0f;
+static LARGE_INTEGER g_start_tick = { 0 };
+static double g_seconds_per_tick = 0.0;
+
+// Longer than this was a load screen, not a frame.
+#define LONGEST_FRAME 0.1f
+
+static float since_last_frame(void)
+{
+    if (g_seconds_per_tick == 0.0) {
+        LARGE_INTEGER frequency;
+        if (!QueryPerformanceFrequency(&frequency) || frequency.QuadPart == 0)
+            return LONGEST_FRAME;
+        g_seconds_per_tick = 1.0 / (double)frequency.QuadPart;
+    }
+
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+    const LONGLONG previous = g_start_tick.QuadPart;
+    g_start_tick = now;
+    if (previous == 0) return 0.0f;
+
+    const float dt = (float)((double)(now.QuadPart - previous) * g_seconds_per_tick);
+    if (dt <= 0.0f) return 0.0f;
+    return dt < LONGEST_FRAME ? dt : LONGEST_FRAME;
+}
 
 static float g_last_x = 0.0f, g_last_y = 0.0f;
 static float g_travel_x = 0.0f, g_travel_y = 0.0f;
@@ -105,6 +136,7 @@ static void end_movement(void)
 {
     if (g_moving) diagnostics_flush();
     g_moving = false;
+    g_start_seconds = 0.0f;
     rotator_clear_target();
     // Without this, stopping and moving again along the same heading would
     // leave `Direction` unchanged, suppress the start branch entirely and carry
@@ -209,6 +241,11 @@ void movement_director_update(void)
     // animation to the first update of the next movement.
     accumulate_travel(player);
 
+    // Read once per frame whatever happens below, so the interval never carries
+    // the time spent behind an early return.
+    const float frame_seconds = since_last_frame();
+    if (!g_moving) g_start_seconds += frame_seconds;
+
     // Above every gate, including the toggle: the states it exists to describe
     // are the ones the mod refuses to run in, so sampling below a gate would
     // record everything except what is being looked for.
@@ -280,8 +317,14 @@ void movement_director_update(void)
     // Starting is not gated on a fresh sample. Walking in a straight line holds
     // `direction` still for hundreds of updates, so a movement ended by one
     // frame of a veto would stay dead until the player turned.
-    const bool starting = !g_moving;
+    //
+    // It is gated on the movement lasting, though. Tapping a direction key does
+    // not turn the character in the base game: one press is not enough to commit
+    // to it. Turning on the first update made every tap swing the body round,
+    // which is the transition players describe as missing.
+    const bool starting = !g_moving && g_start_seconds >= g_config.start_hold;
     if (starting) begin_movement(angle, relative, camera_yaw, direction);
+    if (!g_moving) return;
 
     uint32_t state1 = 0, state2 = 0;
     get_actor_state(player, &state1, &state2);

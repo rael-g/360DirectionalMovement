@@ -13,7 +13,8 @@ struct config g_config = {
     .turn_rate = 540.0f,
     .turn_smoothing = 0.1f,
     .direction_hold = 0.08f,
-    .snap_on_start = true,
+    .start_hold = 0.12f,
+    .snap_on_start = false,
     .min_speed = 0.5f,
     .yield_when_sitting = true,
     .yield_when_sneaking = true,
@@ -50,6 +51,7 @@ void config_load(void)
         else if (!strcmp(key, "turnRate")) g_config.turn_rate = value;
         else if (!strcmp(key, "turnSmoothing")) g_config.turn_smoothing = value;
         else if (!strcmp(key, "directionHold")) g_config.direction_hold = value;
+        else if (!strcmp(key, "startHold")) g_config.start_hold = value;
         else if (!strcmp(key, "snapOnStart")) g_config.snap_on_start = on;
         else if (!strcmp(key, "minSpeed")) g_config.min_speed = value;
         else if (!strcmp(key, "yieldWhenSitting")) g_config.yield_when_sitting = on;
