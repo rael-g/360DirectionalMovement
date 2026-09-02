@@ -4,6 +4,7 @@
 #include "game.h"
 #include "log.h"
 
+#include <math.h>
 #include <windows.h>
 
 typedef void (*update_graph_fn)(void *, const void *);
@@ -66,6 +67,18 @@ static float elapsed_seconds(void)
 
 static float g_last_dt = 0.0f;
 
+// Near a half turn the shorter arc is decided by noise, so the body pivots one
+// way on one reversal and the other way on the next while the transition
+// animation always pivots the same way. Past this angle the direction is fixed
+// instead of measured, and latched until the target is reached.
+#define AMBIGUOUS_ARC 2.36f
+#define REVERSAL_SIGN -1.0f
+
+// Close enough to the target that the shorter arc is no longer in doubt.
+#define ARC_RESOLVED 0.1f
+
+static float g_latched_sign = 0.0f;
+
 // Chases the target along the shorter arc and returns the angle to write.
 static float step_toward_target(void)
 {
@@ -83,7 +96,15 @@ static float step_toward_target(void)
     // interval would turn faster the more often that happens.
     if (dt <= 0.0f) return g_current;
 
-    const float delta = wrap_signed(g_target - g_current);
+    float delta = wrap_signed(g_target - g_current);
+
+    if (g_latched_sign == 0.0f && fabsf(delta) > AMBIGUOUS_ARC)
+        g_latched_sign = REVERSAL_SIGN;
+
+    if (g_latched_sign != 0.0f) {
+        if (delta * g_latched_sign < 0.0f) delta += g_latched_sign * SF360_TWO_PI;
+        if (fabsf(delta) < ARC_RESOLVED) g_latched_sign = 0.0f;
+    }
 
     if (g_config.turn_smoothing > 0.0f) {
         // Critically damped: eased at both ends, arriving without overshoot.
