@@ -14,12 +14,26 @@ Todos abaixo são a mesma correção, uma linha cada, e já estão na rc1.
 
 **Agachado fica rápido demais, como câmera flutuante** (Jujub3ans). O gate nunca
 mencionou o agachamento, então o mod gira o corpo enquanto o jogo toca a
-locomoção furtiva. `iIsInSneak` existe na tabela e não estava sendo lido.
+locomoção furtiva.
 
-**Pulo com mochila para trás bate em parede invisível** (autor). Mesma forma:
-girar o corpo no ar briga com o vetor do impulso. `iSyncJumpState` existe.
+`iIsInSneak` foi a primeira tentativa e **não funcionou**: na rc1 o mod
+continuou girando agachado. O nome existe na tabela, o valor não descreve o que
+se supôs. A rc2 loga o bruto dele para resolver isso numa sessão.
 
-**Desvio de rota durante o pulo** (conhecido desde a 0.2.1). Mesmo veto.
+O autor aceita desligar o mod inteiro enquanto agachado, como já é com a arma na
+mão, mesmo gostando de andar agachado olhando para trás. Também notou que parar
+agachado olhando para trás faz o personagem virar para frente sozinho.
+
+**Pulo com mochila para trás bate em parede invisível** e **desvio de rota
+durante o pulo** (autor).
+
+Aqui o veto foi o remédio errado, testado e reprovado na rc1: soltar a rotação
+no ar devolve o corpo ao jogo, que o gira para frente no meio do salto. Correr
+de costas e pular vira um giro no ar.
+
+O certo é **congelar**: manter o rumo com que o corpo deixou o chão, sem
+recapturar e sem seguir a câmera. `iSyncJumpState` funciona como sinal, provado
+justamente por o veto ter agido.
 
 Risco: o valor de repouso dessas duas variáveis não foi medido. Precedente do
 `iLadderClimbState`, que repousa em -1, faria um teste contra zero desabilitar o
@@ -30,8 +44,13 @@ estado ativo.
 
 ## Barato: já é configuração, faltava expor
 
-**Correr para os lados e para trás** (AleGR93, autor). Metade é barata: o sprint
-era vetado no gate por girar bruto demais, e agora tem `allowSprint`.
+**Correr para os lados e para trás** (AleGR93, autor). **Não é correção, é
+feature**, decidido pelo autor depois da rc1: o jogo base também não corre de
+lado, então o mod não está quebrando nada, está deixando de acrescentar. Sai do
+caminho crítico.
+
+Metade é barata: o sprint era vetado no gate por girar bruto demais, e agora tem
+`allowSprint`.
 
 A outra metade não é nossa: o jogo só engata sprint com a tecla de frente
 pressionada. AleGR93 propõe marcar as outras teclas como capazes de sprint, o
@@ -78,7 +97,15 @@ errado, e isso é a deslizada. Blankar removeu o empurrão junto com a animaçã
 Se for isso, tirar o teleporte faz a animação de arranque certa tocar sozinha, e
 as blank files deixam de ser necessárias. `snapOnStart` desliga o teleporte.
 
-Por isso a rc1 sai em duas versões, com e sem os arquivos vazios.
+Por isso a rc sai em duas versões, com e sem os arquivos vazios.
+
+**A rc1 não chegou a testar isso.** O log mostra `snapOnStart=1` na única sessão,
+então tirar os arquivos vazios só devolveu a deslizada que eles escondiam, que é
+o resultado esperado e não diz nada sobre a hipótese. O teste de verdade é o zip
+sem vazios **com `snapOnStart=0`**.
+
+Formato medido da deslizada, sem os vazios: correndo para trás, uma escorregada
+curta do tamanho de um passo; para os lados, uma longa na diagonal, uns 2,5 m.
 
 ---
 
