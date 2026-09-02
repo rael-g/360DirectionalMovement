@@ -6,18 +6,13 @@
 
 - The walk no longer slides at the start of a movement
 - Starting a movement no longer snaps the body into the new direction
-- Tapping a direction key no longer swings the body round
 
 ### Changed
-
-- The body turns faster, which shortens the reversals
 - The body is left to the game while sneaking
 
 ### Known issues
 
 - A half turn can make the character duck partway through
-- A reversal can end a short step to the side of where it started
-- Movement start animations are blank, so a sharp start looks wrong
 - The body drifts off course during a jump
 
 ## 0.2.1
