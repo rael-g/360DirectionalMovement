@@ -32,16 +32,6 @@
 // Beyond this the movement counts as a reversal rather than a turn.
 #define REVERSAL_ANGLE 2.36f
 
-// The two input axes, if they read. `Direction` is relative to the body, and
-// the body is what this module rotates, so every reading of it carries our own
-// rotation back in. These do not: they describe which keys are held.
-static void *g_forward_var = NULL;
-static void *g_strafe_var = NULL;
-
-static int32_t g_forward = 0;
-static int32_t g_strafe = 0;
-static bool    g_input_ok = false;
-
 static void *g_speed_var = NULL;
 static void *g_direction_var = NULL;
 static void *g_camera_yaw_var = NULL;
@@ -56,8 +46,9 @@ static float g_offset = 0.0f;
 static float g_previous_heading = 0.0f;
 static float g_last_direction = NO_DIRECTION;
 
-// Octant the direction was in when the offset was last taken. A change of
-// octant separates a new direction from the drift our own rotation feeds back.
+// Octant the offset was last taken in. Reducing to octants separates a
+// direction the player asked for from the small wobble of a heading measured
+// while the body is turning.
 #define NO_OCTANT (-1)
 static int g_last_octant = NO_OCTANT;
 
@@ -123,8 +114,6 @@ static bool resolve_variables(void)
     // actually detected before.
     if (!g_first_person_var) g_first_person_var = intern_string("bIsFirstPerson");
     if (!g_camera_yaw_var) g_camera_yaw_var = intern_string("fCameraYaw");
-    if (!g_forward_var) g_forward_var = intern_string("iSyncForwardState");
-    if (!g_strafe_var) g_strafe_var = intern_string("iSyncStrafeState");
     return g_speed_var && g_direction_var;
 }
 
@@ -152,49 +141,6 @@ static bool rebind(void *player)
     return true;
 }
 
-// Which values the axes take is not documented anywhere, so the pairs are named
-// by the log as they turn up rather than by another round of guessing.
-#define MAX_INPUT_PAIRS 12
-static int32_t g_pairs_seen[MAX_INPUT_PAIRS][2];
-static int     g_pairs_count = 0;
-
-static void note_input_pair(void)
-{
-    for (int i = 0; i < g_pairs_count; ++i)
-        if (g_pairs_seen[i][0] == g_forward && g_pairs_seen[i][1] == g_strafe)
-            return;
-    if (g_pairs_count == MAX_INPUT_PAIRS) return;
-
-    g_pairs_seen[g_pairs_count][0] = g_forward;
-    g_pairs_seen[g_pairs_count][1] = g_strafe;
-    ++g_pairs_count;
-    log_line("input: iSyncForwardState=%d iSyncStrafeState=%d",
-             g_forward, g_strafe);
-}
-
-static void read_input_axes(void *holder)
-{
-    g_input_ok = read_graph_int(holder, g_forward_var, &g_forward)
-                 && read_graph_int(holder, g_strafe_var, &g_strafe);
-    if (g_input_ok) note_input_pair();
-
-    // Neither axis held has no angle, and atan2 answers zero for it, which would
-    // aim the body at the camera. The keys releasing a frame apart is enough to
-    // hit this while still moving.
-    if (g_forward == 0 && g_strafe == 0) g_input_ok = false;
-}
-
-// A distinct value per combination of the two axes, which replaces the octant
-// of `Direction` as the thing a change is detected against.
-static int input_state(void) { return g_forward * 16 + g_strafe; }
-
-// The stick angle relative to the camera, which is the offset itself rather
-// than something to recover it from. Neither axis held is the caller's problem.
-static float input_offset(void)
-{
-    return atan2f((float)g_strafe, (float)g_forward);
-}
-
 static void end_movement(void)
 {
     if (g_moving) diagnostics_flush();
@@ -207,37 +153,43 @@ static void end_movement(void)
     g_last_direction = NO_DIRECTION;
 }
 
-// The only reading of `Direction` taken as absolute truth. Afterwards it is
-// contaminated: the reported direction rotates with the body, so feeding it
-// back would have positive gain.
-static void begin_movement(float angle, float relative, float camera_yaw,
-                           float direction)
+// The offset is the movement heading measured from the camera, which is the
+// stick angle and nothing else. Rotating the body moves both terms of
+// `angle + relative` by the same amount, so it cancels out of the difference.
+static float offset_of(float heading, float camera_yaw)
+{
+    return wrap_signed(heading - camera_yaw);
+}
+
+static int offset_octant(float offset)
+{
+    return octant_of(offset / SF360_TWO_PI);
+}
+
+static void begin_movement(float angle, float relative, float camera_yaw)
 {
     g_moving = true;
     g_settled = false;
-    g_last_octant = g_input_ok ? input_state() : octant_of(direction);
+    g_offset = offset_of(angle + relative, camera_yaw);
+    g_last_octant = offset_octant(g_offset);
     g_previous_octant = g_last_octant;
     g_pending_octant = NO_OCTANT;
     g_pending_seconds = 0.0f;
-    g_offset = g_input_ok ? input_offset()
-                          : wrap_signed((angle + relative) - camera_yaw);
-    g_settled = g_input_ok;
     g_previous_heading = angle + relative;
     rotator_reset(angle);
 }
 
-static void maintain_offset(float direction, float heading, float camera_yaw)
+static void maintain_offset(float heading, float camera_yaw)
 {
     // A change of octant means the player asked for a new direction, so the
-    // captured offset no longer describes intent. The replacement is taken on
-    // this sample because the body has not turned yet, leaving the heading
-    // still describing intent rather than our own rotation.
+    // captured offset no longer describes intent.
     //
     // Deliberately not gated on having settled: the game blends `Direction`
     // towards a new input an eighth of a turn at a time, so during a quick
     // change the heading never holds still and nothing would ever settle.
     if (g_config.recapture_on_switch) {
-        const int octant = g_input_ok ? input_state() : octant_of(direction);
+        const float candidate = offset_of(heading, camera_yaw);
+        const int octant = offset_octant(candidate);
         const int seen_before = g_previous_octant;
         g_previous_octant = octant;
 
@@ -256,21 +208,18 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
             // one with a brake and a step the other way, and that transition is
             // worth letting finish: turning across it is what makes the
             // character appear to duck partway through a half turn.
-            const float turn_size = g_input_ok
-                ? fabsf(wrap_signed(input_offset() - g_offset))
-                : fabsf(wrap_signed(direction * SF360_TWO_PI));
+            const float turn_size = fabsf(wrap_signed(candidate - g_offset));
             const float hold = (turn_size > REVERSAL_ANGLE)
                                ? g_config.reversal_hold : g_config.direction_hold;
 
             // The game blends `Direction` an eighth of a turn per update, and an
-            // octant is an eighth, so every octant between the old direction and
+            // octant is an eighth, so every octant between the old heading and
             // the new one is passed through for about one sample. Committing to
             // whichever one the clock happens to expire in is how the body ends
             // up facing a direction that was never asked for. Surviving two
             // samples separates a direction from the blend crossing it.
             if (g_pending_seconds >= hold && octant == seen_before) {
-                g_offset = g_input_ok ? input_offset()
-                                      : wrap_signed(heading - camera_yaw);
+                g_offset = candidate;
                 g_last_octant = octant;
                 g_pending_octant = NO_OCTANT;
                 g_pending_seconds = 0.0f;
@@ -283,9 +232,7 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
     // `Direction` ramps up from zero at the start of a movement. Capturing on
     // the first frame would lock the movement onto a wrong offset, so the
     // capture waits until the heading stops changing, then happens once.
-    // With the axes readable the offset is exact from the first update, so there
-    // is nothing to converge on.
-    if (!g_input_ok && !g_settled && g_config.recapture_on_settle) {
+    if (!g_settled && g_config.recapture_on_settle) {
         if (fabsf(wrap_signed(heading - g_previous_heading)) < STABLE_HEADING) {
             g_offset = wrap_signed(heading - camera_yaw);
             g_settled = true;
@@ -397,8 +344,6 @@ void movement_director_update(void)
     if (!g_camera_yaw_var) return;
     if (!read_graph_float(holder, g_camera_yaw_var, &camera_yaw)) return;
 
-    read_input_axes(holder);
-
     // A jump keeps whatever heading it left the ground with. Recapturing here
     // would chase the arc, and standing down would let the game swing the body
     // round to face forward halfway through.
@@ -414,7 +359,7 @@ void movement_director_update(void)
     // to it. Turning on the first update made every tap swing the body round,
     // which is the transition players describe as missing.
     const bool starting = !g_moving && g_start_seconds >= g_config.start_hold;
-    if (starting) begin_movement(angle, relative, camera_yaw, direction);
+    if (starting) begin_movement(angle, relative, camera_yaw);
     if (!g_moving) return;
 
     uint32_t state1 = 0, state2 = 0;
@@ -422,7 +367,7 @@ void movement_director_update(void)
 
     if (fresh_sample) {
         if (!starting && !jumping)
-            maintain_offset(direction, angle + relative, camera_yaw);
+            maintain_offset(angle + relative, camera_yaw);
 
         const struct diagnostic_sample sample = {
             .code = starting ? DIAGNOSTIC_START
