@@ -15,6 +15,8 @@ struct config
                                // 0 removes the easing at both ends
     float direction_hold;      // seconds a new direction must hold before the
                                // body follows it; 0 follows every sample
+    float reversal_hold;       // seconds to wait before turning into a
+                               // reversal, which the game brakes into
     float start_hold;          // seconds a movement must last before the
                                // body turns into it; a tap turns nothing
     bool  snap_on_start;       // jump straight to the heading when a movement

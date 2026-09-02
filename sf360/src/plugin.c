@@ -39,13 +39,14 @@ bool sf360_startup(uint32_t sfse_version, uint32_t runtime_version)
     log_line("--- 360 Directional Movement " SF360_VERSION " ---");
     log_line("config: hookPost=%d recaptureOnSettle=%d recaptureOnSwitch=%d "
              "turnRate=%.1f turnSmoothing=%.3f directionHold=%.3f "
-             "startHold=%.3f snapOnStart=%d minSpeed=%.3f yieldWhenSitting=%d "
+             "reversalHold=%.3f startHold=%.3f snapOnStart=%d minSpeed=%.3f yieldWhenSitting=%d "
              "yieldWhenSneaking=%d freezeWhenJumping=%d allowSprint=%d "
              "toggleKey=%d probeStates=%d scanStates=%d stateAllowlist=%d",
              g_config.hook_post, g_config.recapture_on_settle,
              g_config.recapture_on_switch, g_config.turn_rate,
              g_config.turn_smoothing, g_config.direction_hold,
-             g_config.start_hold, g_config.snap_on_start,
+             g_config.reversal_hold, g_config.start_hold,
+             g_config.snap_on_start,
              g_config.min_speed,
              g_config.yield_when_sitting, g_config.yield_when_sneaking,
              g_config.freeze_when_jumping, g_config.allow_sprint,

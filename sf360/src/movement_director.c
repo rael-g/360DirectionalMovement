@@ -29,6 +29,9 @@
 // sample carried over from a previous movement".
 #define NO_DIRECTION (-1.0f)
 
+// Beyond this the movement counts as a reversal rather than a turn.
+#define REVERSAL_ANGLE 2.36f
+
 static void *g_speed_var = NULL;
 static void *g_direction_var = NULL;
 static void *g_camera_yaw_var = NULL;
@@ -182,7 +185,15 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
             }
             g_pending_seconds += rotator_last_dt();
 
-            if (g_pending_seconds >= g_config.direction_hold) {
+            // A reversal waits longer than a sideways change. The game answers
+            // one with a brake and a step the other way, and that transition is
+            // worth letting finish: turning across it is what makes the
+            // character appear to duck partway through a half turn.
+            const float turn_size = fabsf(wrap_signed(direction * SF360_TWO_PI));
+            const float hold = (turn_size > REVERSAL_ANGLE)
+                               ? g_config.reversal_hold : g_config.direction_hold;
+
+            if (g_pending_seconds >= hold) {
                 g_offset = wrap_signed(heading - camera_yaw);
                 g_last_octant = octant;
                 g_pending_octant = NO_OCTANT;
