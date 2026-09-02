@@ -2,6 +2,7 @@
 #include "angles.h"
 #include "config.h"
 #include "diagnostics.h"
+#include "frame_clock.h"
 #include "game.h"
 #include "layout_check.h"
 #include "log.h"
@@ -13,7 +14,6 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <windows.h>
 
 // A graph variable that could not be read stays distinguishable from one that
 // legitimately reads zero.
@@ -48,42 +48,11 @@ static float g_last_direction = NO_DIRECTION;
 #define NO_OCTANT (-1)
 static int g_last_octant = NO_OCTANT;
 
-// A candidate octant and how long it has held. An analogue stick crosses
-// octant boundaries on the way to anywhere, so a change that does not survive
-// this long is a boundary being brushed rather than a direction being asked
-// for.
-static int   g_pending_octant = NO_OCTANT;
-static float g_pending_seconds = 0.0f;
-
 // How long the current movement has been asked for. The rotator's clock cannot
 // serve here: it only advances while there is a target, and the whole point is
 // to measure the stretch before there is one.
 static float g_start_seconds = 0.0f;
-static LARGE_INTEGER g_start_tick = { 0 };
-static double g_seconds_per_tick = 0.0;
-
-// Longer than this was a load screen, not a frame.
-#define LONGEST_FRAME 0.1f
-
-static float since_last_frame(void)
-{
-    if (g_seconds_per_tick == 0.0) {
-        LARGE_INTEGER frequency;
-        if (!QueryPerformanceFrequency(&frequency) || frequency.QuadPart == 0)
-            return LONGEST_FRAME;
-        g_seconds_per_tick = 1.0 / (double)frequency.QuadPart;
-    }
-
-    LARGE_INTEGER now;
-    QueryPerformanceCounter(&now);
-    const LONGLONG previous = g_start_tick.QuadPart;
-    g_start_tick = now;
-    if (previous == 0) return 0.0f;
-
-    const float dt = (float)((double)(now.QuadPart - previous) * g_seconds_per_tick);
-    if (dt <= 0.0f) return 0.0f;
-    return dt < LONGEST_FRAME ? dt : LONGEST_FRAME;
-}
+static struct frame_clock g_clock = { 0 };
 
 static float g_last_x = 0.0f, g_last_y = 0.0f;
 static float g_travel_x = 0.0f, g_travel_y = 0.0f;
@@ -100,9 +69,7 @@ static bool resolve_variables(void)
 {
     if (!g_speed_var) g_speed_var = intern_string("Speed");
     if (!g_direction_var) g_direction_var = intern_string("Direction");
-    // Named 'bIsFirstPerson' and declared Integer, not 'IsFirstPerson' and
-    // Boolean. The Skyrim spelling reads nothing, so first person was never
-    // actually detected before.
+    // Declared Integer under this exact spelling. Any other reads nothing.
     if (!g_first_person_var) g_first_person_var = intern_string("bIsFirstPerson");
     if (!g_camera_yaw_var) g_camera_yaw_var = intern_string("fCameraYaw");
     return g_speed_var && g_direction_var;
@@ -151,8 +118,6 @@ static void begin_movement(float angle, float relative, float camera_yaw,
     g_settled = false;
     g_offset = wrap_signed((angle + relative) - camera_yaw);
     g_last_octant = octant_of(direction);
-    g_pending_octant = NO_OCTANT;
-    g_pending_seconds = 0.0f;
     g_previous_heading = angle + relative;
     rotator_reset(angle);
 }
@@ -169,23 +134,10 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
     // change the heading never holds still and nothing would ever settle.
     if (g_config.recapture_on_switch) {
         const int octant = octant_of(direction);
-        if (octant == g_last_octant) {
-            g_pending_octant = NO_OCTANT;
-            g_pending_seconds = 0.0f;
-        } else {
-            if (octant != g_pending_octant) {
-                g_pending_octant = octant;
-                g_pending_seconds = 0.0f;
-            }
-            g_pending_seconds += rotator_last_dt();
-
-            if (g_pending_seconds >= g_config.direction_hold) {
-                g_offset = wrap_signed(heading - camera_yaw);
-                g_last_octant = octant;
-                g_pending_octant = NO_OCTANT;
-                g_pending_seconds = 0.0f;
-                g_previous_heading = heading;
-            }
+        if (octant != g_last_octant) {
+            g_offset = wrap_signed(heading - camera_yaw);
+            g_last_octant = octant;
+            g_previous_heading = heading;
             return;
         }
     }
@@ -240,7 +192,7 @@ void movement_director_update(void)
 
     // Read once per frame whatever happens below, so the interval never carries
     // the time spent behind an early return.
-    const float frame_seconds = since_last_frame();
+    const float frame_seconds = frame_clock_step(&g_clock);
     if (!g_moving) g_start_seconds += frame_seconds;
 
     // Above every gate, including the toggle: the states it exists to describe
@@ -305,20 +257,13 @@ void movement_director_update(void)
     if (!g_camera_yaw_var) return;
     if (!read_graph_float(holder, g_camera_yaw_var, &camera_yaw)) return;
 
-    // A jump keeps whatever heading it left the ground with. Recapturing here
-    // would chase the arc, and standing down would let the game swing the body
-    // round to face forward halfway through.
-    const bool jumping = g_config.freeze_when_jumping
-                         && state_gate_is_jumping(player);
-
     // Starting is not gated on a fresh sample. Walking in a straight line holds
     // `direction` still for hundreds of updates, so a movement ended by one
     // frame of a veto would stay dead until the player turned.
     //
-    // It is gated on the movement lasting, though. Tapping a direction key does
-    // not turn the character in the base game: one press is not enough to commit
-    // to it. Turning on the first update made every tap swing the body round,
-    // which is the transition players describe as missing.
+    // It is gated on the movement lasting, though. A tapped direction key is
+    // not a commitment to face that way, and turning on the first update would
+    // swing the body round for every tap.
     const bool starting = !g_moving && g_start_seconds >= g_config.start_hold;
     if (starting) begin_movement(angle, relative, camera_yaw, direction);
     if (!g_moving) return;
@@ -327,7 +272,7 @@ void movement_director_update(void)
     get_actor_state(player, &state1, &state2);
 
     if (fresh_sample) {
-        if (!starting && !jumping)
+        if (!starting)
             maintain_offset(direction, angle + relative, camera_yaw);
 
         const struct diagnostic_sample sample = {
@@ -343,7 +288,7 @@ void movement_director_update(void)
             .camera_yaw = read_or_unavailable(holder, g_camera_yaw_var),
             .offset = g_offset,
             .speed = read_or_unavailable(holder, g_speed_var),
-            .jump = state_gate_raw(player, 1),
+            .jump = state_gate_jump_state(player),
             .state1 = state1,
             .state2 = state2,
         };
@@ -354,10 +299,6 @@ void movement_director_update(void)
     // constant, and recomputing the target only inside that gate would stop the
     // body from following the camera while the camera turns.
     if (!g_moving) return;
-
-    // The rotator keeps the target it already has, so the body holds its
-    // heading through the arc even if the camera swings.
-    if (jumping) return;
 
     const float target = camera_yaw + g_offset;
     if (rotator_failed()) write_angle_z(player, target);

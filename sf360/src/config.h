@@ -13,8 +13,6 @@ struct config
                                // 0 means no limit
     float turn_smoothing;      // roughly the seconds a turn takes to settle;
                                // 0 removes the easing at both ends
-    float direction_hold;      // seconds a new direction must hold before the
-                               // body follows it; 0 follows every sample
     float start_hold;          // seconds a movement must last before the
                                // body turns into it; a tap turns nothing
     bool  snap_on_start;       // jump straight to the heading when a movement
@@ -22,8 +20,6 @@ struct config
     float min_speed;           // Speed above which the actor counts as moving
     bool  yield_when_sitting;  // leave the body alone while sitting or sleeping
     bool  yield_when_sneaking; // leave the body alone while sneaking
-    bool  freeze_when_jumping; // hold the heading until the feet are down
-                               // again, rather than handing rotation back
     bool  allow_sprint;        // turn the body while sprinting too
     int   toggle_key;          // virtual key code that switches the mod on and
                                // off in play; 0 removes the shortcut
