@@ -58,6 +58,11 @@ static int g_last_octant = NO_OCTANT;
 static int   g_pending_octant = NO_OCTANT;
 static float g_pending_seconds = 0.0f;
 
+// The octant on the previous sample, which is not the same thing as the pending
+// one: the pending octant is what the clock is running against, this is only
+// what was last seen.
+static int g_previous_octant = NO_OCTANT;
+
 // How long the current movement has been asked for. The rotator's clock cannot
 // serve here: it only advances while there is a target, and the whole point is
 // to measure the stretch before there is one.
@@ -156,6 +161,7 @@ static void begin_movement(float angle, float relative, float camera_yaw,
     g_moving = true;
     g_settled = false;
     g_last_octant = octant_of(direction);
+    g_previous_octant = g_last_octant;
     g_pending_octant = NO_OCTANT;
     g_pending_seconds = 0.0f;
     g_offset = wrap_signed((angle + relative) - camera_yaw);
@@ -175,6 +181,9 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
     // change the heading never holds still and nothing would ever settle.
     if (g_config.recapture_on_switch) {
         const int octant = octant_of(direction);
+        const int seen_before = g_previous_octant;
+        g_previous_octant = octant;
+
         if (octant == g_last_octant) {
             g_pending_octant = NO_OCTANT;
             g_pending_seconds = 0.0f;
@@ -194,7 +203,13 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
             const float hold = (turn_size > REVERSAL_ANGLE)
                                ? g_config.reversal_hold : g_config.direction_hold;
 
-            if (g_pending_seconds >= hold) {
+            // The game blends `Direction` an eighth of a turn per update, and an
+            // octant is an eighth, so every octant between the old direction and
+            // the new one is passed through for about one sample. Committing to
+            // whichever one the clock happens to expire in is how the body ends
+            // up facing a direction that was never asked for. Surviving two
+            // samples separates a direction from the blend crossing it.
+            if (g_pending_seconds >= hold && octant == seen_before) {
                 g_offset = wrap_signed(heading - camera_yaw);
                 g_last_octant = octant;
                 g_pending_octant = NO_OCTANT;
