@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.2
+
+### Fixed
+
+- A half turn no longer makes the character duck partway through
+- The walk no longer slides at the start of a movement
+- Tapping a direction key no longer swings the body round
+
+### Changed
+
+- The body is left to the game while sneaking
+
+### Known issues
+
+- The reversal transitions the game plays for itself do not play
+- Movement start animations are blank, so a sharp start looks wrong
+- The body drifts off course during a jump
+
 ## 0.2.1
 
 ### Fixed
