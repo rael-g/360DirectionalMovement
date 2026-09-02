@@ -43,9 +43,8 @@ static float g_offset = 0.0f;
 static float g_previous_heading = 0.0f;
 static float g_last_direction = NO_DIRECTION;
 
-// Octant the requested direction was in when the offset was last taken. A
-// change of octant separates a new direction from the drift our own rotation
-// feeds back.
+// Octant the direction was in when the offset was last taken. A change of
+// octant separates a new direction from the drift our own rotation feeds back.
 #define NO_OCTANT (-1)
 static int g_last_octant = NO_OCTANT;
 
@@ -112,34 +111,29 @@ static void end_movement(void)
     g_last_direction = NO_DIRECTION;
 }
 
-// The direction being asked for, as a fraction of a turn away from where the
-// camera points. Held input keeps this still however far the body has turned,
-// which `Direction` does not: that one is measured against the body, so our own
-// rotation sweeps it through every octant on the way round.
-static float requested_turns(float heading, float camera_yaw)
-{
-    return wrap_signed(heading - camera_yaw) / SF360_TWO_PI;
-}
-
-static void begin_movement(float angle, float relative, float camera_yaw)
+static void begin_movement(float angle, float relative, float camera_yaw,
+                           float direction)
 {
     g_moving = true;
     g_settled = false;
-    const float heading = angle + relative;
-    g_offset = wrap_signed(heading - camera_yaw);
-    g_last_octant = octant_of(requested_turns(heading, camera_yaw));
-    g_previous_heading = heading;
+    g_offset = wrap_signed((angle + relative) - camera_yaw);
+    g_last_octant = octant_of(direction);
+    g_previous_heading = angle + relative;
     rotator_reset(angle);
 }
 
-static void maintain_offset(float heading, float camera_yaw)
+static void maintain_offset(float direction, float heading, float camera_yaw)
 {
     // A change of octant means the player asked for a new direction, so the
     // captured offset no longer describes intent. The replacement is taken on
     // this sample because the body has not turned yet, leaving the heading
     // still describing intent rather than our own rotation.
+    //
+    // Deliberately not gated on having settled: the game blends `Direction`
+    // towards a new input an eighth of a turn at a time, so during a quick
+    // change the heading never holds still and nothing would ever settle.
     if (g_config.recapture_on_switch) {
-        const int octant = octant_of(requested_turns(heading, camera_yaw));
+        const int octant = octant_of(direction);
         if (octant != g_last_octant) {
             g_offset = wrap_signed(heading - camera_yaw);
             g_last_octant = octant;
@@ -271,7 +265,7 @@ void movement_director_update(void)
     // not a commitment to face that way, and turning on the first update would
     // swing the body round for every tap.
     const bool starting = !g_moving && g_start_seconds >= g_config.start_hold;
-    if (starting) begin_movement(angle, relative, camera_yaw);
+    if (starting) begin_movement(angle, relative, camera_yaw, direction);
     if (!g_moving) return;
 
     uint32_t state1 = 0, state2 = 0;
@@ -279,7 +273,7 @@ void movement_director_update(void)
 
     if (fresh_sample) {
         if (!starting)
-            maintain_offset(angle + relative, camera_yaw);
+            maintain_offset(direction, angle + relative, camera_yaw);
 
         const struct diagnostic_sample sample = {
             .code = starting ? DIAGNOSTIC_START
