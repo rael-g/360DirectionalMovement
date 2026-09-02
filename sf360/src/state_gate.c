@@ -22,6 +22,8 @@ static void *g_sprint_var = NULL;
 static void *g_ladder_var = NULL;
 static void *g_gravity_var = NULL;
 static void *g_zerog_spine_var = NULL;
+static void *g_sneak_var = NULL;
+static void *g_jump_var = NULL;
 
 // The sit state comes from an offset a game update could move, so the raw words
 // are logged once per binding.
@@ -50,6 +52,16 @@ static bool vetoed(void *holder, void *name, int32_t inactive)
     return value != inactive;
 }
 
+// For a veto whose resting value has not been measured. `iLadderClimbState`
+// rests at -1, so testing against zero there disabled the mod everywhere; only
+// a positive reading is taken as the state being active.
+static bool vetoed_positive(void *holder, void *name)
+{
+    int32_t value = 0;
+    if (!read_graph_int(holder, name, &value)) return false;
+    return value > 0;
+}
+
 void state_gate_rebound(void)
 {
     g_sit_logged = false;
@@ -62,6 +74,8 @@ bool state_gate_allows(void *player)
     if (!g_ladder_var) g_ladder_var = intern_string("iLadderClimbState");
     if (!g_gravity_var) g_gravity_var = intern_string("iSyncGravity");
     if (!g_zerog_spine_var) g_zerog_spine_var = intern_string("bZeroGSpine");
+    if (!g_sneak_var) g_sneak_var = intern_string("iIsInSneak");
+    if (!g_jump_var) g_jump_var = intern_string("iSyncJumpState");
 
     // From ActorState, because the graph has no drawn or holstered state.
     if (is_weapon_drawn(player)) return false;
@@ -84,8 +98,14 @@ bool state_gate_allows(void *player)
     // admits a state it should not.
     if (!confirmed(holder, g_locomotion_var, LOCOMOTION_ON_FOOT)) return false;
 
-    // Sprinting turns too sharply under the current rate limiter.
-    if (vetoed(holder, g_sprint_var, SPRINT_INACTIVE)) return false;
+    if (!g_config.allow_sprint
+        && vetoed(holder, g_sprint_var, SPRINT_INACTIVE)) return false;
+
+    if (g_config.yield_when_sneaking
+        && vetoed_positive(holder, g_sneak_var)) return false;
+
+    if (g_config.yield_when_jumping
+        && vetoed_positive(holder, g_jump_var)) return false;
 
     // Climbing: rotating the body here traps the character between decks.
     if (vetoed(holder, g_ladder_var, LADDER_NONE)) return false;

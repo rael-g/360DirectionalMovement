@@ -43,6 +43,8 @@ def main():
     parser.add_argument("version")
     parser.add_argument("--dll", default=os.path.join(ROOT, "build", "sf360.dll"))
     parser.add_argument("--out", default=None)
+    parser.add_argument("--no-blanks", action="store_true",
+                        help="leave the empty animations out")
     args = parser.parse_args()
 
     if not os.path.exists(args.dll):
@@ -51,7 +53,7 @@ def main():
     out = args.out or os.path.join(
         ROOT, f"{NAME.replace(' ', '')}-{args.version}.zip")
 
-    paths = blank_paths()
+    paths = [] if args.no_blanks else blank_paths()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.write(args.dll, "SFSE/Plugins/sf360.dll")
         archive.writestr("readme.txt", readme_text(args.version))

@@ -47,6 +47,13 @@ static float g_last_direction = NO_DIRECTION;
 #define NO_OCTANT (-1)
 static int g_last_octant = NO_OCTANT;
 
+// A candidate octant and how long it has held. An analogue stick crosses
+// octant boundaries on the way to anywhere, so a change that does not survive
+// this long is a boundary being brushed rather than a direction being asked
+// for.
+static int   g_pending_octant = NO_OCTANT;
+static float g_pending_seconds = 0.0f;
+
 static float g_last_x = 0.0f, g_last_y = 0.0f;
 static float g_travel_x = 0.0f, g_travel_y = 0.0f;
 static float g_sampled_x = 0.0f, g_sampled_y = 0.0f;
@@ -114,6 +121,8 @@ static void begin_movement(float angle, float relative, float camera_yaw,
     g_moving = true;
     g_settled = false;
     g_last_octant = octant_of(direction);
+    g_pending_octant = NO_OCTANT;
+    g_pending_seconds = 0.0f;
     g_offset = wrap_signed((angle + relative) - camera_yaw);
     g_previous_heading = angle + relative;
     rotator_reset(angle);
@@ -131,10 +140,23 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
     // change the heading never holds still and nothing would ever settle.
     if (g_config.recapture_on_switch) {
         const int octant = octant_of(direction);
-        if (octant != g_last_octant) {
-            g_offset = wrap_signed(heading - camera_yaw);
-            g_last_octant = octant;
-            g_previous_heading = heading;
+        if (octant == g_last_octant) {
+            g_pending_octant = NO_OCTANT;
+            g_pending_seconds = 0.0f;
+        } else {
+            if (octant != g_pending_octant) {
+                g_pending_octant = octant;
+                g_pending_seconds = 0.0f;
+            }
+            g_pending_seconds += rotator_last_dt();
+
+            if (g_pending_seconds >= g_config.direction_hold) {
+                g_offset = wrap_signed(heading - camera_yaw);
+                g_last_octant = octant;
+                g_pending_octant = NO_OCTANT;
+                g_pending_seconds = 0.0f;
+                g_previous_heading = heading;
+            }
             return;
         }
     }

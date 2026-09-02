@@ -211,7 +211,7 @@ void rotator_reset(float current_angle)
 {
     g_current = current_angle;
     g_velocity = 0.0f;
-    g_snap_next = true;
+    g_snap_next = g_config.snap_on_start;
     // The next step measures from now, not back across however long the body
     // spent standing still.
     g_last_tick.QuadPart = 0;
