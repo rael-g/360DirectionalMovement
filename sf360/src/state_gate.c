@@ -62,6 +62,21 @@ static bool vetoed_positive(void *holder, void *name)
     return value > 0;
 }
 
+bool state_gate_is_jumping(void *player)
+{
+    if (!g_jump_var) g_jump_var = intern_string("iSyncJumpState");
+    return vetoed_positive(holder_of(player), g_jump_var);
+}
+
+int state_gate_raw(void *player, int which)
+{
+    void *holder = holder_of(player);
+    void *name = (which == 0) ? g_sneak_var : g_jump_var;
+    int32_t value = -1000;
+    if (!name || !read_graph_int(holder, name, &value)) return -1000;
+    return value;
+}
+
 void state_gate_rebound(void)
 {
     g_sit_logged = false;
@@ -103,9 +118,6 @@ bool state_gate_allows(void *player)
 
     if (g_config.yield_when_sneaking
         && vetoed_positive(holder, g_sneak_var)) return false;
-
-    if (g_config.yield_when_jumping
-        && vetoed_positive(holder, g_jump_var)) return false;
 
     // Climbing: rotating the body here traps the character between decks.
     if (vetoed(holder, g_ladder_var, LADDER_NONE)) return false;

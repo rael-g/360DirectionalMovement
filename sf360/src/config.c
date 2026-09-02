@@ -17,7 +17,7 @@ struct config g_config = {
     .min_speed = 0.5f,
     .yield_when_sitting = true,
     .yield_when_sneaking = true,
-    .yield_when_jumping = true,
+    .freeze_when_jumping = true,
     .allow_sprint = false,
     // F11. F5 and F9 are the game's quicksave and quickload, and F12 is the
     // Steam screenshot, so this is the nearest key that is free by default.
@@ -54,7 +54,7 @@ void config_load(void)
         else if (!strcmp(key, "minSpeed")) g_config.min_speed = value;
         else if (!strcmp(key, "yieldWhenSitting")) g_config.yield_when_sitting = on;
         else if (!strcmp(key, "yieldWhenSneaking")) g_config.yield_when_sneaking = on;
-        else if (!strcmp(key, "yieldWhenJumping")) g_config.yield_when_jumping = on;
+        else if (!strcmp(key, "freezeWhenJumping")) g_config.freeze_when_jumping = on;
         else if (!strcmp(key, "allowSprint")) g_config.allow_sprint = on;
         // A virtual key code, not a flag, so the whole value is kept.
         else if (!strcmp(key, "toggleKey")) g_config.toggle_key = (int)value;

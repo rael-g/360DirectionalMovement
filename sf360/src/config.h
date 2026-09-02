@@ -20,7 +20,8 @@ struct config
     float min_speed;           // Speed above which the actor counts as moving
     bool  yield_when_sitting;  // leave the body alone while sitting or sleeping
     bool  yield_when_sneaking; // leave the body alone while sneaking
-    bool  yield_when_jumping;  // leave the body alone while off the ground
+    bool  freeze_when_jumping; // hold the heading until the feet are down
+                               // again, rather than handing rotation back
     bool  allow_sprint;        // turn the body while sprinting too
     int   toggle_key;          // virtual key code that switches the mod on and
                                // off in play; 0 removes the shortcut

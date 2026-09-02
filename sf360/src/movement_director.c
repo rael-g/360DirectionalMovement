@@ -271,10 +271,21 @@ void movement_director_update(void)
     if (!g_camera_yaw_var) return;
     if (!read_graph_float(holder, g_camera_yaw_var, &camera_yaw)) return;
 
+    // A jump keeps whatever heading it left the ground with. Recapturing here
+    // would chase the arc, and standing down would let the game swing the body
+    // round to face forward halfway through.
+    const bool jumping = g_config.freeze_when_jumping
+                         && state_gate_is_jumping(player);
+
+    // Starting is not gated on a fresh sample. Walking in a straight line holds
+    // `direction` still for hundreds of updates, so a movement ended by one
+    // frame of a veto would stay dead until the player turned.
+    const bool starting = !g_moving;
+    if (starting) begin_movement(angle, relative, camera_yaw, direction);
+
     if (fresh_sample) {
-        const bool starting = !g_moving;
-        if (starting) begin_movement(angle, relative, camera_yaw, direction);
-        else maintain_offset(direction, angle + relative, camera_yaw);
+        if (!starting && !jumping)
+            maintain_offset(direction, angle + relative, camera_yaw);
 
         const struct diagnostic_sample sample = {
             .code = starting ? DIAGNOSTIC_START
@@ -282,13 +293,15 @@ void movement_director_update(void)
                                           : DIAGNOSTIC_SETTLING),
             .angle = angle,
             .relative = relative,
-            .heading = angle + relative,
+            .heading = wrap_signed(angle + relative),
             .measured = measured_heading(),
             .travel = sqrtf(g_sampled_x * g_sampled_x + g_sampled_y * g_sampled_y),
             .direction = read_or_unavailable(holder, g_direction_var),
             .camera_yaw = read_or_unavailable(holder, g_camera_yaw_var),
             .offset = g_offset,
             .speed = read_or_unavailable(holder, g_speed_var),
+            .sneak = state_gate_raw(player, 0),
+            .jump = state_gate_raw(player, 1),
         };
         diagnostics_record(&sample);
     }
@@ -297,6 +310,10 @@ void movement_director_update(void)
     // constant, and recomputing the target only inside that gate would stop the
     // body from following the camera while the camera turns.
     if (!g_moving) return;
+
+    // The rotator keeps the target it already has, so the body holds its
+    // heading through the arc even if the camera swings.
+    if (jumping) return;
 
     const float target = camera_yaw + g_offset;
     if (rotator_failed()) write_angle_z(player, target);
