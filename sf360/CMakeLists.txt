@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
-project(sf360 VERSION 0.2.1 LANGUAGES C CXX)
+project(sf360 VERSION 0.2.2 LANGUAGES C CXX)
 
 # CMake versions are numeric only, so the pre-release suffix is carried apart.
 # Empty on a final release.
-set(SF360_PRERELEASE "")
+set(SF360_PRERELEASE "-rc28")
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -20,15 +20,16 @@ add_library(sf360 SHARED
     src/address_library.c
     src/config.c
     src/diagnostics.c
+    src/frame_clock.c
     src/game.c
     src/layout_check.c
-    src/state_gate.c
     src/log.c
     src/movement_director.c
     src/paths.c
     src/plugin.c
     src/probe.c
     src/rotator.c
+    src/state_gate.c
     src/toggle.c)
 
 target_include_directories(sf360 PRIVATE

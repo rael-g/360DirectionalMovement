@@ -1,6 +1,7 @@
 #include "rotator.h"
 #include "angles.h"
 #include "config.h"
+#include "frame_clock.h"
 #include "game.h"
 #include "log.h"
 
@@ -34,42 +35,13 @@ static float g_velocity = 0.0f;
 
 static volatile long g_calls = 0;
 
-// Longer than this was a load screen, not a frame, and is charged as one frame.
-#define LONGEST_FRAME 0.1f
-
-// The graph update carries no timestep reachable from here, and the hook does
-// not fire at a fixed rate, so the interval is measured off the wall clock.
-static double g_seconds_per_tick = 0.0;
-static LARGE_INTEGER g_last_tick = { 0 };
-
-static float elapsed_seconds(void)
-{
-    if (g_seconds_per_tick == 0.0) {
-        LARGE_INTEGER frequency;
-        // Turning at the wrong speed beats not turning at all.
-        if (!QueryPerformanceFrequency(&frequency) || frequency.QuadPart == 0)
-            return LONGEST_FRAME;
-        g_seconds_per_tick = 1.0 / (double)frequency.QuadPart;
-    }
-
-    LARGE_INTEGER now;
-    QueryPerformanceCounter(&now);
-    const LONGLONG previous = g_last_tick.QuadPart;
-    g_last_tick = now;
-
-    if (previous == 0) return 0.0f;
-
-    const float dt = (float)((double)(now.QuadPart - previous) * g_seconds_per_tick);
-    if (dt <= 0.0f) return 0.0f;
-    return dt < LONGEST_FRAME ? dt : LONGEST_FRAME;
-}
-
+static struct frame_clock g_clock = { 0 };
 static float g_last_dt = 0.0f;
 
 // Chases the target along the shorter arc and returns the angle to write.
 static float step_toward_target(void)
 {
-    const float dt = elapsed_seconds();
+    const float dt = frame_clock_step(&g_clock);
     if (dt > 0.0f) g_last_dt = dt;
 
     if (g_snap_next) {
@@ -212,9 +184,7 @@ void rotator_reset(float current_angle)
     g_current = current_angle;
     g_velocity = 0.0f;
     g_snap_next = g_config.snap_on_start;
-    // The next step measures from now, not back across however long the body
-    // spent standing still.
-    g_last_tick.QuadPart = 0;
+    frame_clock_restart(&g_clock);
 }
 
 long rotator_hook_calls(void) { return g_calls; }
