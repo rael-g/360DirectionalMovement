@@ -179,10 +179,11 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
             g_pending_octant = NO_OCTANT;
             g_pending_seconds = 0.0f;
         } else {
-            if (octant != g_pending_octant) {
-                g_pending_octant = octant;
-                g_pending_seconds = 0.0f;
-            }
+            // The clock measures time spent away from the octant the offset was
+            // taken in, not time spent in one candidate. Restarting it on every
+            // new candidate meant a zig zag faster than the hold never committed
+            // to anything, and the body stayed pointed the way it started.
+            g_pending_octant = octant;
             g_pending_seconds += rotator_last_dt();
 
             // A reversal waits longer than a sideways change. The game answers

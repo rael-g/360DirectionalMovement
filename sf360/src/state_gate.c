@@ -62,10 +62,28 @@ static bool vetoed_positive(void *holder, void *name)
     return value > 0;
 }
 
-// Whether the jump signal ever reads anything at all is still unproven: the
-// diagnostic window closed before the first jump of the session. One line the
-// first time it moves settles it without another build.
 static bool g_jump_logged = false;
+
+// Which value of the sneak variable means sneaking is not known yet, and the
+// two words of ActorState do not carry the state at all. Logging the readings
+// as they appear names them without another round of guessing.
+static int32_t g_sneak_seen[4] = { -1000, -1000, -1000, -1000 };
+
+static bool sneaking(void *holder)
+{
+    int32_t value = 0;
+    if (!read_graph_int(holder, g_sneak_var, &value)) return false;
+
+    for (int i = 0; i < 4; ++i) {
+        if (g_sneak_seen[i] == value) break;
+        if (g_sneak_seen[i] == -1000) {
+            g_sneak_seen[i] = value;
+            log_line("sneak: iSyncRelaxReadySneak=%d", value);
+            break;
+        }
+    }
+    return value > 0;
+}
 
 bool state_gate_is_jumping(void *player)
 {
@@ -104,7 +122,7 @@ bool state_gate_allows(void *player)
     if (!g_ladder_var) g_ladder_var = intern_string("iLadderClimbState");
     if (!g_gravity_var) g_gravity_var = intern_string("iSyncGravity");
     if (!g_zerog_spine_var) g_zerog_spine_var = intern_string("bZeroGSpine");
-    if (!g_sneak_var) g_sneak_var = intern_string("iIsInSneak");
+    if (!g_sneak_var) g_sneak_var = intern_string("iSyncRelaxReadySneak");
     if (!g_jump_var) g_jump_var = intern_string("iSyncJumpState");
 
     // From ActorState, because the graph has no drawn or holstered state.
@@ -131,8 +149,7 @@ bool state_gate_allows(void *player)
     if (!g_config.allow_sprint
         && vetoed(holder, g_sprint_var, SPRINT_INACTIVE)) return false;
 
-    if (g_config.yield_when_sneaking
-        && vetoed_positive(holder, g_sneak_var)) return false;
+    if (g_config.yield_when_sneaking && sneaking(holder)) return false;
 
     // Climbing: rotating the body here traps the character between decks.
     if (vetoed(holder, g_ladder_var, LADDER_NONE)) return false;
