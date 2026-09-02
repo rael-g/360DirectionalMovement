@@ -1,22 +1,33 @@
-[size=4][b]Your character turns to face the direction it is actually moving.[/b][/size]
+[size=4][b]Run in any direction without backpedalling.[/b][/size]
 
-In the base game the body stays locked to the camera, so moving backwards or sideways plays a backpedal or a strafe. This mod turns the character to face its movement direction so it simply runs, the way most third person action games handle it.
-
-The camera is untouched. You still aim it freely, and the character follows where you are going.
+In the base game the body stays locked to the camera, so moving backwards or sideways plays a backpedal or a strafe. This mod turns the character to face its movement direction so it simply runs, the way most third person action games handle it. You still aim the camera freely.
 
 [b]Work in progress.[/b] This is an early release. It is stable and playable, but a few rough edges remain and are being worked on. Feedback and reports are welcome.
 
 
 [size=4][b]Where it acts[/b][/size]
 
-Walking, jogging and jumping, with the weapon put away.
+[list]
+[*][b]Walking[/b]
+[*][b]Jogging[/b]
+[*][b]Jumping[/b], with the weapon put away
+[/list]
 
-Sprinting, climbing a ladder, zero g, sitting and holding a weapon are left alone: in those situations the character behaves exactly as it would without the mod installed. That is deliberate, and it is what fixes the ladder and zero g reports from the previous version.
+Left exactly as the base game plays them:
+
+[list]
+[*][b]Sprinting[/b]
+[*][b]Sneaking[/b]
+[*][b]Climbing a ladder[/b]
+[*][b]Zero g[/b]
+[*][b]Sitting[/b]
+[*][b]Holding a weapon[/b]
+[/list]
 
 The turn accelerates and eases into place rather than snapping to the camera. It still does not look quite like the turn the game plays for itself, and that is what is being worked on next.
 
 
-[size=4][b]Found a bug? Press F11 instead of uninstalling[/b][/size]
+[size=4][b]Found a bug? Press F11[/b][/size]
 
 [b]F11[/b] turns the mod off and back on in game. Hit a spot where it misbehaves, switch it off, get past it, switch it back on.
 
@@ -51,8 +62,23 @@ sResourceDataDirsFinal=[/code]
 
 [size=4][b]About the included animation files[/b][/size]
 
-The archive includes empty replacements for the movement start animations. Those animations carry root motion that fights the rotation, so blanking them removes a slide at the start of a movement. The visual cost is negligible, and they will be dropped once the interaction is fixed properly.
+The archive includes empty replacements for two sets of animations.
 
+The movement start animations carry root motion that fights the rotation, which shows up as a slide at the start of a movement.
+
+The reversal transitions are the animations the game plays when you swap to the opposite direction. With the body already turned they play against the way the character is going, which is what made it duck partway through a half turn.
+
+Blanking both is what makes the mod behave. The cost is that reversals are plainer than the base game's.
+
+
+[size=4][b]Known issues[/b][/size]
+
+[list]
+[*]The turn does not look quite like the one the game plays for itself
+[*]Reversals do not use the game's own transition animations
+[*]A sharp start looks wrong, since the start animations are blank
+[*]The body drifts off course during a jump
+[/list]
 
 
 [size=4][b]Source[/b][/size]
