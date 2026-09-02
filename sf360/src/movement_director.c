@@ -177,6 +177,11 @@ static void read_input_axes(void *holder)
     g_input_ok = read_graph_int(holder, g_forward_var, &g_forward)
                  && read_graph_int(holder, g_strafe_var, &g_strafe);
     if (g_input_ok) note_input_pair();
+
+    // Neither axis held has no angle, and atan2 answers zero for it, which would
+    // aim the body at the camera. The keys releasing a frame apart is enough to
+    // hit this while still moving.
+    if (g_forward == 0 && g_strafe == 0) g_input_ok = false;
 }
 
 // A distinct value per combination of the two axes, which replaces the octant
