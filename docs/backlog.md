@@ -156,6 +156,35 @@ território de animação, não de rotação, e o mod só sabe escrever ângulo.
 
 ---
 
+## Recursos de terceiros avaliados
+
+**Real Time Form Patcher** (nexusmods.com/starfield/mods/8324) e **StarPatcher**
+(mods/12855) editam registro e GameSettings em tempo de execução por config, sem
+esp. Não servem para o mod, que não mexe em registro. Servem como **bancada**.
+
+A pista: o AleGR93 observou que a velocidade com que o jogo gira o boneco parado
+**muda entre andar e trotar**. Velocidade por marcha não parece GMST, parece
+campo de registro; engines anteriores da Bethesda guardam isso num registro de
+tipo de movimento, com velocidades por marcha incluindo girar no lugar.
+
+Se existir no Starfield e o patcher alcançar, dá para mexer na rotação do jogo
+sem compilar e sem publicar esp. **Não confirmado:** não há documentação do
+formato. Verificação é abrir o Creation Kit ou o xEdit e procurar a categoria,
+meia hora, não um build.
+
+Vale só onde o jogo é quem gira, o giro parado e a inclinação com a câmera. Onde
+escrevemos o ângulo direto nada disso é consultado. Entre os dois, o RTFP, que
+declara mexer em GameSettings sem desativar conquistas.
+
+**Ez-SFSE-Plugins** (mods/14577) e os templates de CommonLibSF não têm ganho: o
+sf360 é C puro, não linka a lib, e a mantém clonada como referência de layout,
+que é como a vtable do holder foi lida. Trocar seria recomeçar por nada.
+
+Nenhum deles passa na frente de descobrir se os slots 0x0F e 0x10 são os setters
+de variável de grafo. O patcher é atalho para um item; o setter derruba vários.
+
+---
+
 ## Caro: o teto de sempre
 
 Giramos escrevendo o ângulo do ator, o que não informa nada ao grafo de
