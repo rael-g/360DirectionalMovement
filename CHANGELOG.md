@@ -5,6 +5,7 @@
 ### Fixed
 
 - The walk no longer slides at the start of a movement
+- Starting a movement no longer snaps the body into the new direction
 - Tapping a direction key no longer swings the body round
 
 ### Changed
