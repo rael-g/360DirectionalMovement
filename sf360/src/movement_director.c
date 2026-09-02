@@ -75,12 +75,8 @@ static bool resolve_variables(void)
     return g_speed_var && g_direction_var;
 }
 
-// Loading a save rebuilds the player object, possibly with a different vtable,
-// while this module's state survives.
-//
-// The object also appears before its animation graph is ready, so binding only
-// commits once the layout check passes. Committing earlier would spend the one
-// attempt during the load and leave the plugin inert for the whole session.
+// The player object appears before its animation graph is ready, so binding
+// commits only once the layout check passes.
 static bool rebind(void *player)
 {
     const bool first_attempt = (player != g_pending_player);
@@ -105,9 +101,7 @@ static void end_movement(void)
     g_moving = false;
     g_start_seconds = 0.0f;
     rotator_clear_target();
-    // Without this, stopping and moving again along the same heading would
-    // leave `Direction` unchanged, suppress the start branch entirely and carry
-    // the previous movement's offset over.
+    // A movement resumed along the same heading must still read as fresh.
     g_last_direction = NO_DIRECTION;
 }
 
@@ -124,14 +118,10 @@ static void begin_movement(float angle, float relative, float camera_yaw,
 
 static void maintain_offset(float direction, float heading, float camera_yaw)
 {
-    // A change of octant means the player asked for a new direction, so the
-    // captured offset no longer describes intent. The replacement is taken on
-    // this sample because the body has not turned yet, leaving the heading
-    // still describing intent rather than our own rotation.
-    //
-    // Deliberately not gated on having settled: the game blends `Direction`
-    // towards a new input an eighth of a turn at a time, so during a quick
-    // change the heading never holds still and nothing would ever settle.
+    // A change of octant means a new direction was asked for, so the captured
+    // offset no longer describes intent. The replacement is taken on this
+    // sample, while the body has not turned yet and the heading still carries
+    // intent rather than our own rotation.
     if (g_config.recapture_on_switch) {
         const int octant = octant_of(direction);
         if (octant != g_last_octant) {
@@ -142,9 +132,8 @@ static void maintain_offset(float direction, float heading, float camera_yaw)
         }
     }
 
-    // `Direction` ramps up from zero at the start of a movement. Capturing on
-    // the first frame would lock the movement onto a wrong offset, so the
-    // capture waits until the heading stops changing, then happens once.
+    // `Direction` ramps up from zero, so the capture waits for the heading to
+    // hold still and then happens once.
     if (!g_settled && g_config.recapture_on_settle) {
         if (fabsf(wrap_signed(heading - g_previous_heading)) < STABLE_HEADING) {
             g_offset = wrap_signed(heading - camera_yaw);
@@ -185,9 +174,8 @@ void movement_director_update(void)
     if (player != g_player && !rebind(player)) return;
 
     void *holder = holder_of(player);
-    // Kept above every early return so the position stays current: coming out of
-    // a chair with a stale sample would charge the whole displacement of the
-    // animation to the first update of the next movement.
+    // Above every early return: a stale position charges the whole gap to the
+    // first update of the next movement.
     accumulate_travel(player);
 
     // Read once per frame whatever happens below, so the interval never carries
@@ -195,26 +183,20 @@ void movement_director_update(void)
     const float frame_seconds = frame_clock_step(&g_clock);
     if (!g_moving) g_start_seconds += frame_seconds;
 
-    // Above every gate, including the toggle: the states it exists to describe
-    // are the ones the mod refuses to run in, so sampling below a gate would
-    // record everything except what is being looked for.
+    // Above every gate, including the toggle: the states worth sampling are the
+    // ones the gates reject.
     probe_actor_state(player);
     probe_scan(holder);
 
-    // Switched off from the keyboard. Below accumulate_travel so the position
-    // stays current: whatever happened while the mod was off must not be
-    // charged to the first update after it comes back.
-    //
     // The hooks stay installed and go inert on the cleared target, which avoids
-    // restoring vtable slots that another plugin may have swapped since.
+    // restoring vtable slots another plugin may have swapped since.
     if (!toggle_enabled()) {
         end_movement();
         return;
     }
 
     // Sitting, ladders, zero g, sprinting and a drawn weapon all leave here.
-    // Above the speed test on purpose: the graph reports speed while seated, so
-    // anything behind that test would read sitting as ordinary movement.
+    // Above the speed test: the graph reports speed while seated.
     if (g_config.state_allowlist && !state_gate_allows(player)) {
         end_movement();
         return;
@@ -232,16 +214,13 @@ void movement_director_update(void)
         return;
     }
 
-    // `Direction` is the movement direction relative to the body, in turns. It
-    // is exact from the first update of a movement, which is why it drives the
-    // control instead of a heading derived from position, which needs two
-    // samples above a minimum displacement.
+    // `Direction` is the movement direction relative to the body, in turns, and
+    // is exact from the first update of a movement.
     const float relative = wrap_signed(direction * SF360_TWO_PI);
     const float angle = get_angle_z(player);
 
     // The task runs several times per graph update while `direction` only
-    // changes with the update. Acting again on the same value would be repeated
-    // open loop correction.
+    // changes with the update.
     const bool fresh_sample = (direction != g_last_direction);
     g_last_direction = direction;
     if (fresh_sample) {
@@ -257,13 +236,9 @@ void movement_director_update(void)
     if (!g_camera_yaw_var) return;
     if (!read_graph_float(holder, g_camera_yaw_var, &camera_yaw)) return;
 
-    // Starting is not gated on a fresh sample. Walking in a straight line holds
-    // `direction` still for hundreds of updates, so a movement ended by one
-    // frame of a veto would stay dead until the player turned.
-    //
-    // It is gated on the movement lasting, though. A tapped direction key is
-    // not a commitment to face that way, and turning on the first update would
-    // swing the body round for every tap.
+    // Not gated on a fresh sample: a straight line holds `direction` still for
+    // hundreds of updates. Gated on the movement lasting, since a tapped
+    // direction key is not a commitment to face that way.
     const bool starting = !g_moving && g_start_seconds >= g_config.start_hold;
     if (starting) begin_movement(angle, relative, camera_yaw, direction);
     if (!g_moving) return;
@@ -295,9 +270,8 @@ void movement_director_update(void)
         diagnostics_record(&sample);
     }
 
-    // Outside the fresh sample gate: during a straight run `direction` is
-    // constant, and recomputing the target only inside that gate would stop the
-    // body from following the camera while the camera turns.
+    // Outside the fresh sample gate, so the body keeps following the camera
+    // during a straight run, where `direction` is constant.
     if (!g_moving) return;
 
     const float target = camera_yaw + g_offset;

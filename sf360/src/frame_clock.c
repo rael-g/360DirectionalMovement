@@ -9,7 +9,6 @@ static double seconds_per_tick(void)
     static double cached = 0.0;
     if (cached == 0.0) {
         LARGE_INTEGER frequency;
-        // Measuring at the wrong scale beats not turning at all.
         if (!QueryPerformanceFrequency(&frequency) || frequency.QuadPart == 0)
             return 0.0;
         cached = 1.0 / (double)frequency.QuadPart;
