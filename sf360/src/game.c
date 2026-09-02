@@ -82,11 +82,10 @@ void get_actor_state(void *refr, uint32_t *first, uint32_t *second)
     *second = words[1];
 }
 
-// Measured in play, not taken from the Skyrim layout, which does not hold here:
-// sitting down walks the field through 1, 2 and 3 while the entry animation
-// places the body, holds at 3 for as long as the character stays seated, and
-// returns to standing on getting up. Only the standing value has a verified
-// meaning, so the test is against that one rather than against a named step.
+// The field walks through several values while the entry animation places the
+// body and holds at the last of them for as long as the character stays
+// seated. Only the standing value has a known meaning, so the test is against
+// that one rather than against a named step.
 bool is_sitting(void *refr)
 {
     uint32_t first = 0, second = 0;

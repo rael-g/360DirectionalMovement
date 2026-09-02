@@ -1,7 +1,7 @@
 #pragma once
 
-// Buffers the first updates of each movement and writes them out when the
-// movement ends, so file access never happens inside the control path.
+// Buffers each movement and writes it out when the movement ends, so file
+// access never happens inside the control path.
 
 enum diagnostic_code
 {

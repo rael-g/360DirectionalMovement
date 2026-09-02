@@ -6,17 +6,12 @@
 
 #include "address_library.h"
 
-// Layout facts taken from CommonLibSF. The plugin does not link against it.
-//   PlayerCharacter singleton ............ Address Library ID 922868
-//   BSStringPool::GetEntry ............... Address Library ID 1186742
-//   IAnimationGraphManagerHolder ......... subobject at TESObjectREFR + 0x60
-//   GetGraphVariableImpl{Float,Int,Bool} . vtable slots 0x12, 0x13, 0x14
-//   Pre/PostUpdateAnimationGraphManager .. vtable slots 0x15, 0x16
+// Layout of the game's objects, as depended on below. Every offset and slot
+// here is a fact about one build of the executable, so a game update is
+// expected to invalidate them; layout_check exists to notice when it does.
 //
-// One offset here is measured rather than taken from CommonLibSF, which puts
-// ActorState at Actor + 0xE8 and so its first bitfield word at 0xF0. On this
-// build 0xF0 holds a pointer into the game, so the subobject starts there and
-// the two words follow at 0xF8. Found by dumping the neighbourhood in play.
+// ActorState is the one entry not shared with CommonLibSF, whose Actor + 0xE8
+// holds a pointer on this build. The bitfield words start at 0xF8.
 
 #define ID_PLAYER_SINGLETON 922868u
 #define ID_GET_ENTRY        1186742u
@@ -40,12 +35,10 @@
 #define SIT_STATE_MASK     0x3u
 #define SIT_STATE_STANDING 0u
 
-// The weapon state shares the second word, in its low three bits. Measured by
-// logging the raw words across four draw and holster cycles: the field walked
-// 0, 2, 3, 5 and back to 0 every time, which is the sheathed, drawing, drawn,
-// sheathing progression. Only sheathed is treated as weapon away, so the two
-// transitional values count as drawn rather than flickering the mod on midway
-// through the animation.
+// The weapon state shares the second word, in its low three bits. It walks
+// sheathed, drawing, drawn, sheathing, and only the sheathed value counts as
+// put away: treating the transitional values as drawn keeps the mod from
+// switching on halfway through the animation.
 #define WEAPON_STATE_MASK  0x7u
 #define WEAPON_SHEATHED    0u
 

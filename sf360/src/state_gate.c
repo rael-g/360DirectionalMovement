@@ -62,57 +62,24 @@ static bool vetoed_positive(void *holder, void *name)
     return value > 0;
 }
 
-static bool g_jump_logged = false;
-
-// Which value of the sneak variable means sneaking is not known yet, and the
-// two words of ActorState do not carry the state at all. Logging the readings
-// as they appear names them without another round of guessing.
-static int32_t g_sneak_seen[4] = { -1000, -1000, -1000, -1000 };
-
 static bool sneaking(void *holder)
 {
     int32_t value = 0;
     if (!read_graph_int(holder, g_sneak_var, &value)) return false;
-
-    for (int i = 0; i < 4; ++i) {
-        if (g_sneak_seen[i] == value) break;
-        if (g_sneak_seen[i] == -1000) {
-            g_sneak_seen[i] = value;
-            log_line("sneak: iSyncRelaxReadySneak=%d", value);
-            break;
-        }
-    }
     return value > 0;
 }
 
-bool state_gate_is_jumping(void *player)
+int state_gate_jump_state(void *player)
 {
-    if (!g_jump_var) g_jump_var = intern_string("iSyncJumpState");
-
-    void *holder = holder_of(player);
-    int32_t value = 0;
-    if (!read_graph_int(holder, g_jump_var, &value)) return false;
-
-    if (value != 0 && !g_jump_logged) {
-        log_line("jump: iSyncJumpState=%d", value);
-        g_jump_logged = true;
-    }
-    return value > 0;
-}
-
-int state_gate_raw(void *player, int which)
-{
-    void *holder = holder_of(player);
-    void *name = (which == 0) ? g_sneak_var : g_jump_var;
-    int32_t value = -1000;
-    if (!name || !read_graph_int(holder, name, &value)) return -1000;
+    int32_t value = STATE_GATE_UNREADABLE;
+    if (!g_jump_var || !read_graph_int(holder_of(player), g_jump_var, &value))
+        return STATE_GATE_UNREADABLE;
     return value;
 }
 
 void state_gate_rebound(void)
 {
     g_sit_logged = false;
-    g_jump_logged = false;
 }
 
 bool state_gate_allows(void *player)
