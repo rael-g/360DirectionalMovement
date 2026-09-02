@@ -4,7 +4,6 @@
 
 ### Fixed
 
-- A half turn no longer makes the character duck partway through
 - The walk no longer slides at the start of a movement
 - Tapping a direction key no longer swings the body round
 
@@ -14,7 +13,8 @@
 
 ### Known issues
 
-- The reversal transitions the game plays for itself do not play
+- A half turn can make the character duck partway through
+- A reversal can end a short step to the side of where it started
 - Movement start animations are blank, so a sharp start looks wrong
 - The body drifts off course during a jump
 
