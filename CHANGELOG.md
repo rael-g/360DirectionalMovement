@@ -10,6 +10,7 @@
 
 ### Changed
 
+- The body turns faster, which shortens the reversals
 - The body is left to the game while sneaking
 
 ### Known issues
