@@ -283,6 +283,9 @@ void movement_director_update(void)
     const bool starting = !g_moving;
     if (starting) begin_movement(angle, relative, camera_yaw, direction);
 
+    uint32_t state1 = 0, state2 = 0;
+    get_actor_state(player, &state1, &state2);
+
     if (fresh_sample) {
         if (!starting && !jumping)
             maintain_offset(direction, angle + relative, camera_yaw);
@@ -300,8 +303,9 @@ void movement_director_update(void)
             .camera_yaw = read_or_unavailable(holder, g_camera_yaw_var),
             .offset = g_offset,
             .speed = read_or_unavailable(holder, g_speed_var),
-            .sneak = state_gate_raw(player, 0),
             .jump = state_gate_raw(player, 1),
+            .state1 = state1,
+            .state2 = state2,
         };
         diagnostics_record(&sample);
     }

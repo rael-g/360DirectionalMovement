@@ -6,7 +6,7 @@
 #include <stddef.h>
 
 #define MAX_SAMPLES   40
-#define MAX_MOVEMENTS 8
+#define MAX_MOVEMENTS 24
 
 static struct diagnostic_sample g_samples[MAX_SAMPLES];
 static long   g_sample_calls[MAX_SAMPLES];
@@ -41,14 +41,15 @@ void diagnostics_flush(void)
         const struct diagnostic_sample *s = &g_samples[i];
         log_line("  %2zu code=%d angle=%7.1f rel=%7.1f heading=%7.1f "
                  "measured=%7.1f travel=%6.3f dir=%6.3f offset=%7.1f "
-                 "speed=%6.2f calls=%ld dt=%5.1fms driven=%7.1f sneak=%d jump=%d",
+                 "speed=%6.2f calls=%ld dt=%5.1fms driven=%7.1f jump=%d "
+                 "st1=%08X st2=%08X",
                  i, s->code,
                  s->angle * SF360_RAD_TO_DEG, s->relative * SF360_RAD_TO_DEG,
                  s->heading * SF360_RAD_TO_DEG, s->measured, s->travel,
                  s->direction, s->offset * SF360_RAD_TO_DEG, s->speed,
                  g_sample_calls[i], g_sample_dt[i] * 1000.0f,
                  g_sample_driven[i] * SF360_RAD_TO_DEG,
-                 s->sneak, s->jump);
+                 s->jump, s->state1, s->state2);
     }
     g_count = 0;
 }

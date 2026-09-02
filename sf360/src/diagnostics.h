@@ -18,8 +18,9 @@ struct diagnostic_sample
     float heading;    // where the actor is actually going, radians
     float measured;   // heading derived from displacement, degrees
     float travel;     // displacement magnitude
-    int   sneak;      // raw iIsInSneak, -1000 when unreadable
-    int   jump;       // raw iSyncJumpState, -1000 when unreadable
+    int      jump;    // raw iSyncJumpState, -1000 when unreadable
+    unsigned state1;  // ActorState's two bitfield words, which is
+    unsigned state2;  // where sitting and the weapon already live
     float direction;  // raw Direction graph variable
     float camera_yaw; // raw fCameraYaw graph variable
     float offset;     // captured body to camera offset, radians

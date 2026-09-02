@@ -62,10 +62,24 @@ static bool vetoed_positive(void *holder, void *name)
     return value > 0;
 }
 
+// Whether the jump signal ever reads anything at all is still unproven: the
+// diagnostic window closed before the first jump of the session. One line the
+// first time it moves settles it without another build.
+static bool g_jump_logged = false;
+
 bool state_gate_is_jumping(void *player)
 {
     if (!g_jump_var) g_jump_var = intern_string("iSyncJumpState");
-    return vetoed_positive(holder_of(player), g_jump_var);
+
+    void *holder = holder_of(player);
+    int32_t value = 0;
+    if (!read_graph_int(holder, g_jump_var, &value)) return false;
+
+    if (value != 0 && !g_jump_logged) {
+        log_line("jump: iSyncJumpState=%d", value);
+        g_jump_logged = true;
+    }
+    return value > 0;
 }
 
 int state_gate_raw(void *player, int which)
@@ -80,6 +94,7 @@ int state_gate_raw(void *player, int which)
 void state_gate_rebound(void)
 {
     g_sit_logged = false;
+    g_jump_logged = false;
 }
 
 bool state_gate_allows(void *player)
